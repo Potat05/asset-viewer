@@ -13,7 +13,7 @@
 
         await fsUtils.forEachDeep(dir, async (path, entry) => {
 
-            console.log(`Evaluating "${path}"`);
+            // console.log(`Evaluating "${path}"`);
 
             
 
@@ -43,7 +43,7 @@
 
 
 
-        const file = await fsUtils.getDeep(dir, 'test.txt');
+        const file = await fsUtils.getDeep(dir, 'package.json');
 
         file?.viewer?.createViewer(file, viewerContainer);
 

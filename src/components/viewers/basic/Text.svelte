@@ -18,9 +18,7 @@
 
     {#await blob.text() then text}
 
-        <pre>
-            {text}
-        </pre>
+        <pre>{text}</pre>
 
     {/await}
 

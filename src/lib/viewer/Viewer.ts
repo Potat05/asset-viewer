@@ -30,12 +30,6 @@ export function createNewViewer(viewer: Viewer) {
 
 
 
-// TODO - Is this needed?
-import NoneViewer from "../viewers/None";
-createNewViewer(NoneViewer);
-
-
-
 import TextViewer from "../viewers/basic/Text";
 createNewViewer(TextViewer);
 
