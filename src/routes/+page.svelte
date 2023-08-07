@@ -1,6 +1,7 @@
 <script lang="ts">
     import { fsEntry, type fsDirectory, type fsFile, fsUtils } from "$lib/FileSystem";
     import { viewerRegistry } from "$lib/viewer/Viewer";
+    import Directory from "../components/Directory.svelte";
     import Dropzone from "../components/Dropzone.svelte";
 
 
@@ -11,41 +12,50 @@
 
     async function doStuff(dir: fsDirectory) {
 
-        await fsUtils.forEachDeep(dir, async (path, entry) => {
-
-            // console.log(`Evaluating "${path}"`);
-
-            
-
-            if(entry.viewer == null) {
-                for(const viewer of viewerRegistry) {
-                    if(await viewer.isValid(entry)) {
-                        entry.viewer = viewer;
-                        break;
-                    }
-                }
-
-                if(entry.viewer != null) {
-
-                    const transform = await entry.viewer.transform(entry);
-
-                    fsUtils.transform(entry, transform);
-
-                }
-
-            }
 
 
-
-            return true;
-
+        new Directory({
+            target: viewerContainer,
+            props: { dir }
         });
 
 
 
-        const file = await fsUtils.getDeep(dir, 'package.json');
+        // await fsUtils.forEachDeep(dir, async (path, entry) => {
 
-        file?.viewer?.createViewer(file, viewerContainer);
+        //     // console.log(`Evaluating "${path}"`);
+
+            
+
+        //     if(entry.viewer == null) {
+        //         for(const viewer of viewerRegistry) {
+        //             if(await viewer.isValid(entry)) {
+        //                 entry.viewer = viewer;
+        //                 break;
+        //             }
+        //         }
+
+        //         if(entry.viewer != null) {
+
+        //             const transform = await entry.viewer.transform(entry);
+
+        //             fsUtils.transform(entry, transform);
+
+        //         }
+
+        //     }
+
+
+
+        //     return true;
+
+        // });
+
+
+
+        // const file = await fsUtils.getDeep(dir, 'package.json');
+
+        // file?.viewer?.createViewer(file, viewerContainer);
 
 
         console.log(dir);
