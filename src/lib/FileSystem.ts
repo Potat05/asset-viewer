@@ -38,6 +38,9 @@ export interface fsDirectory {
 
 export namespace fsUtils {
 
+    /**
+     * Gets the root directory. If this directory is the root, return null.
+     */
     export function root(entry: fsFile | fsDirectory): fsDirectory | null {
 
         if(entry.parent == null) {
@@ -51,6 +54,9 @@ export namespace fsUtils {
 
     }
 
+    /**
+     * Gets the path from the root directory.
+     */
     export function getPath(entry: fsFile | fsDirectory): string {
 
         // This does ignore the root directory name.
@@ -64,6 +70,13 @@ export namespace fsUtils {
 
     }
 
+    /**
+     * Fix path.
+     * 
+     * Converts \\ to /
+     * 
+     * Removes starting / and ending /
+     */
     export function fixPath(path: string): string {
         path = path.replace(/[\\\/]/g, '/');
         while(path.startsWith('/')) path = path.slice(1);
@@ -71,6 +84,9 @@ export namespace fsUtils {
         return path;
     }
 
+    /**
+     * Gets entry from path.
+     */
     export async function getDeep(dir: fsDirectory, path: string): Promise<fsFile | fsDirectory | null> {
 
         let stack = fixPath(path).split('/');
@@ -104,6 +120,9 @@ export namespace fsUtils {
 
     }
 
+    /**
+     * Transform the entry to a different entry.
+     */
     export async function transform(entry: fsFile | fsDirectory, to: fsFile | fsDirectory | null): Promise<void> {
         if(entry.parent == null) {
             throw new Error('Could not transform, Entry has no parent.');
