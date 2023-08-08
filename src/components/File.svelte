@@ -1,37 +1,17 @@
 
 <script lang="ts">
-    import { fsUtils, type fsFile } from "$lib/FileSystem";
     import { onMount } from "svelte";
-    import { viewerContainerStore } from "../routes/stores";
-    import { openViewer, viewerRegistry } from "$lib/viewer/Viewer";
+    import { openViewer, findViewer } from "$lib/viewer/Viewer";
+    import type { fsFile } from "$lib/FileSystem";
 
     export let file: fsFile;
 
 
-    
+
     onMount(async () => {
-
-        console.debug(`Finding viewer for "${fsUtils.getPath(file)}"`);
-
-        if(file.viewer == null) {
-            for(const viewer of viewerRegistry) {
-                if(await viewer.isValid(file)) {
-                    file.viewer = viewer;
-                    break;
-                }
-            }
-
-            if(file.viewer != null) {
-
-                const transform = await file.viewer.transform(file);
-
-                fsUtils.transform(file, transform);
-
-            }
-
-        }
-
+        file.viewer = await findViewer(file);
     });
+
 
 </script>
 

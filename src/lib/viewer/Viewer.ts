@@ -32,6 +32,33 @@ export function createNewViewer(viewer: Viewer) {
 
 
 
+export async function findViewer(entry: fsFile | fsDirectory): Promise<Viewer | null> {
+
+    if(entry.viewer != null) return null;
+
+    console.debug(`Finding viewer for "${fsUtils.getPath(entry)}"`);
+
+    for(const viewer of viewerRegistry) {
+        if(await viewer.isValid(entry)) {
+            entry.viewer = viewer;
+            break;
+        }
+    }
+
+    if(entry.viewer != null) {
+
+        const transform = await entry.viewer.transform(entry);
+
+        fsUtils.transform(entry, transform);
+
+    }
+
+    return entry.viewer;
+
+}
+
+
+
 let viewerContainer: Element;
 
 viewerContainerStore.subscribe(elem => {
