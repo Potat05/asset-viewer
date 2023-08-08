@@ -3,7 +3,7 @@
     import { fsUtils, type fsFile } from "$lib/FileSystem";
     import { onMount } from "svelte";
     import { viewerContainerStore } from "../routes/stores";
-    import { viewerRegistry } from "$lib/viewer/Viewer";
+    import { openViewer, viewerRegistry } from "$lib/viewer/Viewer";
 
     export let file: fsFile;
 
@@ -33,26 +33,6 @@
 
     });
 
-
-
-    let viewerContainer: Element;
-
-    viewerContainerStore.subscribe(elem => {
-        viewerContainer = elem;
-    });
-
-    function open() {
-
-        console.debug(`Opened "${fsUtils.getPath(file)}"`, file);
-
-        const viewer = file.viewer;
-
-        if(viewer == null) return;
-
-        viewer.createViewer(file, viewerContainer);
-
-    }
-
 </script>
 
 
@@ -69,7 +49,7 @@
 
     {#if file.viewer}
         
-        <button on:click={open}>OPEN</button>
+        <button on:click={() => openViewer(file)}>OPEN</button>
 
     {/if}
 

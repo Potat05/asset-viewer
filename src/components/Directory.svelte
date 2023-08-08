@@ -1,7 +1,7 @@
 
 <script lang="ts">
     import { fsEntry, type fsDirectory, fsUtils } from "$lib/FileSystem";
-    import { viewerRegistry } from "$lib/viewer/Viewer";
+    import { openViewer, viewerRegistry } from "$lib/viewer/Viewer";
     import { onMount } from "svelte";
     import File from "./File.svelte";
     import { viewerContainerStore } from "../routes/stores";
@@ -37,26 +37,6 @@
 
     });
 
-
-
-    let viewerContainer: Element;
-
-    viewerContainerStore.subscribe(elem => {
-        viewerContainer = elem;
-    });
-
-    function open() {
-
-        console.debug(`Opened "${fsUtils.getPath(dir)}"`, dir);
-
-        const viewer = dir.viewer;
-
-        if(viewer == null) return;
-
-        viewer.createViewer(dir, viewerContainer);
-
-    }
-
 </script>
 
 
@@ -80,7 +60,7 @@
 
     {#if dir.viewer}
 
-        <button on:click={open}>OPEN</button>
+        <button on:click={() => openViewer(dir)}>OPEN</button>
 
     {/if}
 

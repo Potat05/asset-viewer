@@ -1,5 +1,5 @@
 
-import type { fsDirectory, fsFile } from "$lib/FileSystem";
+import { fsUtils, type fsDirectory, type fsFile } from "$lib/FileSystem";
 
 
 
@@ -30,10 +30,35 @@ export function createNewViewer(viewer: Viewer) {
 
 
 
+
+
+let viewerContainer: Element;
+
+viewerContainerStore.subscribe(elem => {
+    viewerContainer = elem;
+});
+
+export function openViewer(entry: fsFile | fsDirectory) {
+    
+    console.debug(`Opening viewer for "${fsUtils.getPath(entry)}"`, entry);
+
+    const viewer = entry.viewer;
+
+    if(viewer == null) return;
+
+    viewer.createViewer(entry, viewerContainer);
+
+}
+
+
+
+
+
 import TextViewer from "../viewers/basic/Text";
 createNewViewer(TextViewer);
 
 import ImageViewer from "../viewers/basic/Image";
+import { viewerContainerStore } from "../../routes/stores";
 createNewViewer(ImageViewer);
 
 
