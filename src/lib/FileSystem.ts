@@ -123,7 +123,7 @@ export namespace fsUtils {
     /**
      * Transform the entry to a different entry.
      */
-    export async function transform(entry: fsFile | fsDirectory, to: fsFile | fsDirectory | null): Promise<void> {
+    export async function transform<To extends fsFile | fsDirectory | null>(entry: fsFile | fsDirectory, to: To): Promise<To> {
         if(entry.parent == null) {
             throw new Error('Could not transform, Entry has no parent.');
         }
@@ -131,7 +131,7 @@ export namespace fsUtils {
         if(to == null) {
 
             entry.parent.set(entry.name, null);
-
+            
         } else {
             
             to.viewer = entry.viewer;
@@ -141,6 +141,8 @@ export namespace fsUtils {
             entry.parent.set(entry.name, to);
 
         }
+
+        return to;
 
     }
 
