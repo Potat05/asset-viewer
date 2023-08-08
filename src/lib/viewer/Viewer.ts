@@ -33,4 +33,7 @@ export function createNewViewer(viewer: Viewer) {
 import TextViewer from "../viewers/basic/Text";
 createNewViewer(TextViewer);
 
+import ImageViewer from "../viewers/basic/Image";
+createNewViewer(ImageViewer);
+
 
