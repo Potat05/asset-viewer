@@ -17,29 +17,22 @@
     });
 
 
+    
+    function dropEntry(ev: { detail: fsFile | fsDirectory; }) {
 
-    async function doStuff(dir: fsDirectory) {
+        const dir = ev.detail;
 
+        if(dir.type != fsEntry.Directory) {
+            console.warn('Drop entry must be directory.');
+            return;
+        }
+        
         console.log(dir);
 
         new Directory({
             target: viewerContainer,
             props: { dir }
         });
-
-    }
-
-
-    function dropEntry(ev: { detail: fsFile | fsDirectory; }) {
-
-        const directory = ev.detail;
-
-        if(directory.type != fsEntry.Directory) {
-            console.warn('Drop entry must be directory.');
-            return;
-        }
-
-        doStuff(directory);
 
     }
 
