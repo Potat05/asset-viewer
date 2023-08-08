@@ -7,25 +7,6 @@
 
     export let file: fsFile;
 
-    let viewerContainer: Element;
-
-    viewerContainerStore.subscribe(elem => {
-        viewerContainer = elem;
-    });
-
-    function open() {
-
-        console.debug(`Opened "${fsUtils.getPath(file)}"`, file);
-
-        const viewer = file.viewer;
-
-        if(viewer == null) return;
-
-        viewer.createViewer(file, viewerContainer);
-
-    }
-
-
 
     
     onMount(async () => {
@@ -52,6 +33,26 @@
 
     });
 
+
+
+    let viewerContainer: Element;
+
+    viewerContainerStore.subscribe(elem => {
+        viewerContainer = elem;
+    });
+
+    function open() {
+
+        console.debug(`Opened "${fsUtils.getPath(file)}"`, file);
+
+        const viewer = file.viewer;
+
+        if(viewer == null) return;
+
+        viewer.createViewer(file, viewerContainer);
+
+    }
+
 </script>
 
 
@@ -64,6 +65,12 @@
 
 <div class="file-container">
 
-    <button on:click={open}>{file.name}</button>
+    <button>{file.name}</button>
+
+    {#if file.viewer}
+        
+        <button on:click={open}>OPEN</button>
+
+    {/if}
 
 </div>

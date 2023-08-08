@@ -4,6 +4,7 @@
     import { viewerRegistry } from "$lib/viewer/Viewer";
     import { onMount } from "svelte";
     import File from "./File.svelte";
+    import { viewerContainerStore } from "../routes/stores";
 
     export let dir: fsDirectory;
 
@@ -38,6 +39,24 @@
 
 
 
+    let viewerContainer: Element;
+
+    viewerContainerStore.subscribe(elem => {
+        viewerContainer = elem;
+    });
+
+    function open() {
+
+        console.debug(`Opened "${fsUtils.getPath(dir)}"`, dir);
+
+        const viewer = dir.viewer;
+
+        if(viewer == null) return;
+
+        viewer.createViewer(dir, viewerContainer);
+
+    }
+
 </script>
 
 
@@ -58,6 +77,12 @@
 <div class="dir-container">
     
     <button on:click={() => { expanded = !expanded }}>{dir.name}</button>
+
+    {#if dir.viewer}
+
+        <button on:click={open}>OPEN</button>
+
+    {/if}
 
     {#if expanded}
 
