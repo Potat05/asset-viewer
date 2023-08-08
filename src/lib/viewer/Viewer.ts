@@ -36,8 +36,6 @@ export async function findViewer(entry: fsFile | fsDirectory): Promise<Viewer | 
 
     if(entry.viewer != null) return null;
 
-    console.debug(`Finding viewer for "${fsUtils.getPath(entry)}"`);
-
     for(const viewer of viewerRegistry) {
         if(await viewer.isValid(entry)) {
             entry.viewer = viewer;
@@ -46,6 +44,8 @@ export async function findViewer(entry: fsFile | fsDirectory): Promise<Viewer | 
     }
 
     if(entry.viewer != null) {
+        
+        console.debug(`Found viewer "${entry.viewer.namespace}" for "${fsUtils.getPath(entry)}"`);
 
         const transform = await entry.viewer.transform(entry);
 
