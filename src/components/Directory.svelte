@@ -1,11 +1,42 @@
 
 <script lang="ts">
-    import { fsEntry, type fsDirectory } from "$lib/FileSystem";
+    import { fsEntry, type fsDirectory, fsUtils } from "$lib/FileSystem";
+    import { viewerRegistry } from "$lib/viewer/Viewer";
+    import { onMount } from "svelte";
     import File from "./File.svelte";
 
     export let dir: fsDirectory;
 
     export let expanded: boolean = false;
+
+
+
+    onMount(async () => {
+
+        if(dir.viewer == null) {
+
+            console.debug(`Finding viewer for "${fsUtils.getPath(dir)}"`);
+
+            for(const viewer of viewerRegistry) {
+                if(await viewer.isValid(dir)) {
+                    dir.viewer = viewer;
+                    break;
+                }
+            }
+
+            if(dir.viewer != null) {
+
+                const transform = await dir.viewer.transform(dir);
+
+                fsUtils.transform(dir, transform);
+
+            }
+
+        }
+
+    });
+
+
 
 </script>
 
