@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { fsEntry, type fsDirectory, type fsFile, fsUtils } from "$lib/FileSystem";
-    import { viewerRegistry } from "$lib/viewer/Viewer";
+    import { fsEntry, type fsDirectory, type fsFile } from "$lib/FileSystem";
     import { onMount } from "svelte";
     import Directory from "../components/Directory.svelte";
     import Dropzone from "../components/Dropzone.svelte";
@@ -17,7 +16,7 @@
     });
 
 
-    
+
     function dropEntry(ev: { detail: fsFile | fsDirectory; }) {
 
         const dir = ev.detail;

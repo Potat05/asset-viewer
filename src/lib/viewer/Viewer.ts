@@ -81,10 +81,10 @@ export function openViewer(entry: fsFile | fsDirectory) {
 
 
 
-import TextViewer from "../viewers/basic/Text";
+import TextViewer from "../viewers/basic/text";
 createNewViewer(TextViewer);
 
-import ImageViewer from "../viewers/basic/Image";
+import ImageViewer from "../viewers/basic/image";
 import { viewerContainerStore } from "../../routes/stores";
 createNewViewer(ImageViewer);
 
