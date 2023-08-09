@@ -1,6 +1,6 @@
 
 import { fsEntry, type fsDirectory, type fsFile, fsUtils } from "./FileSystem";
-import type { Viewer } from "./viewer/Viewer";
+import type { Viewer } from "./Viewer";
 
 
 
@@ -115,6 +115,7 @@ export class fsDirectory_DataTransferDirectory implements fsDirectory {
         if(entry == null) {
             delete this.entries[name];
         } else {
+            entry.parent = this;
             this.entries[name] = entry;
         }
 

@@ -1,5 +1,5 @@
 import { fsEntry } from "$lib/FileSystem";
-import type { Viewer } from "$lib/viewer/Viewer";
+import type { Viewer } from "$lib/Viewer";
 import Viewer_Image from "../../../components/viewers/basic/Image.svelte";
 
 const viewer: Viewer = {
@@ -18,7 +18,7 @@ const viewer: Viewer = {
             'bmp'
         ].includes(entry.name.split('.').pop() ?? '');
     },
-    transform: async entry => entry,
+    transform: null,
     createViewer: async (entry, target) => {
 
         if(entry.type == fsEntry.File) {

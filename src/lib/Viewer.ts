@@ -1,5 +1,6 @@
 
 import { fsUtils, type fsDirectory, type fsFile } from "$lib/FileSystem";
+import { viewerContainerStore } from "../routes/stores";
 
 
 
@@ -11,8 +12,8 @@ export interface Viewer {
     priority: number;
 
     isValid: (entry: fsFile | fsDirectory) => Promise<boolean>;
-    transform: (entry: fsFile | fsDirectory) => Promise<fsFile | fsDirectory | null>;
-    createViewer: (entry: fsFile | fsDirectory, target: Element | Document | ShadowRoot) => Promise<void>;
+    transform: ((entry: fsFile | fsDirectory) => Promise<fsFile | fsDirectory | null>) | null;
+    createViewer: ((entry: fsFile | fsDirectory, target: Element | Document | ShadowRoot) => Promise<void>) | null;
     
 }
 
@@ -32,9 +33,9 @@ export function createNewViewer(viewer: Viewer) {
 
 
 
-export async function findViewer(entry: fsFile | fsDirectory): Promise<Viewer | null> {
+export async function findViewer(entry: fsFile | fsDirectory) {
 
-    if(entry.viewer != null) return null;
+    if(entry.viewer != null) return;
 
     for(const viewer of viewerRegistry) {
         if(await viewer.isValid(entry)) {
@@ -47,13 +48,12 @@ export async function findViewer(entry: fsFile | fsDirectory): Promise<Viewer | 
         
         console.debug(`Found viewer "${entry.viewer.namespace}" for "${fsUtils.getPath(entry)}"`);
 
-        const transform = await entry.viewer.transform(entry);
-
-        fsUtils.transform(entry, transform);
+        if(entry.viewer.transform) {
+            const transform = await entry.viewer.transform(entry);
+            fsUtils.transform(entry, transform);
+        }
 
     }
-
-    return entry.viewer;
 
 }
 
@@ -73,7 +73,7 @@ export function openViewer(entry: fsFile | fsDirectory) {
 
     if(viewer == null) return;
 
-    viewer.createViewer(entry, viewerContainer);
+    viewer.createViewer?.(entry, viewerContainer);
 
 }
 
@@ -81,11 +81,13 @@ export function openViewer(entry: fsFile | fsDirectory) {
 
 
 
-import TextViewer from "../viewers/basic/text";
+import TextViewer from "./viewers/basic/text";
 createNewViewer(TextViewer);
 
-import ImageViewer from "../viewers/basic/image";
-import { viewerContainerStore } from "../../routes/stores";
+import ImageViewer from "./viewers/basic/image";
 createNewViewer(ImageViewer);
 
 
+
+import RenPyArchiveViewer from "./viewers/renpy/archive";
+createNewViewer(RenPyArchiveViewer);

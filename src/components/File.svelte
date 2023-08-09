@@ -1,17 +1,9 @@
 
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { openViewer, findViewer } from "$lib/viewer/Viewer";
+    import { openViewer } from "$lib/Viewer";
     import type { fsFile } from "$lib/FileSystem";
 
     export let file: fsFile;
-
-
-
-    onMount(async () => {
-        file.viewer = await findViewer(file);
-    });
-
 
 </script>
 
@@ -27,7 +19,7 @@
 
     <button>{file.name}</button>
 
-    {#if file.viewer}
+    {#if file.viewer?.createViewer}
         
         <button on:click={() => openViewer(file)}>OPEN</button>
 

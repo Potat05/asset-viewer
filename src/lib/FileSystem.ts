@@ -1,4 +1,5 @@
-import type { Viewer } from "./viewer/Viewer";
+import Directory from "../components/Directory.svelte";
+import type { Viewer } from "./Viewer";
 
 
 
@@ -121,6 +122,45 @@ export namespace fsUtils {
     }
 
     /**
+     * Sets entry from path.
+     */
+    export async function setDeep(dir: fsDirectory, path: string, setEntry: fsFile | fsDirectory | null) {
+
+        let stack = fixPath(path).split('/');
+
+        let entry = dir;
+
+        while(stack.length > 1) {
+
+            const name = stack.shift();
+            if(name == undefined) {
+                throw new Error('Catastrophic error that should never happen.');
+            }
+
+            let get = await dir.get(name);
+
+            if(get == null) {
+                get = new fsUtils.fsDirectory_Container(name, entry);
+                entry.set(name, get);
+            }
+            if(get.type != fsEntry.Directory) {
+                throw new Error('setDeep incountered a file in path.');
+            }
+
+            entry = get;
+
+        }
+
+        const name = stack.shift();
+        if(name == undefined) {
+            throw new Error('Catastrophic error that should never happen.');
+        }
+
+        entry.set(name, setEntry);
+
+    }
+
+    /**
      * Transform the entry to a different entry.
      */
     export async function transform<To extends fsFile | fsDirectory | null>(entry: fsFile | fsDirectory, to: To): Promise<To> {
@@ -209,6 +249,48 @@ export namespace fsUtils {
             return await this._blob.arrayBuffer();
         }
         
+    }
+
+
+
+    export class fsDirectory_Container implements fsDirectory {
+
+        public readonly type: fsEntry.Directory = fsEntry.Directory;
+        public viewer: Viewer | null = null;
+        public readonly name: string;
+        public parent: fsDirectory | null;
+
+        private entries: {[key: string]: fsFile | fsDirectory} = {};
+
+        constructor(name: string, parent: fsDirectory | null) {
+            this.name = name;
+            this.parent = parent;
+        }
+
+        async list(): Promise<{ [key: string]: fsDirectory | fsFile; }> {
+
+            // TODO: Do we need to do this?
+            return { ...this.entries };
+
+        }
+
+        async get(name: string): Promise<fsDirectory | fsFile | null> {
+
+            return this.entries[name] ?? null;
+
+        }
+
+        async set(name: string, entry: fsDirectory | fsFile | null): Promise<void> {
+
+            if(entry == null) {
+                delete this.entries[name];
+            } else {
+                entry.parent = this;
+                this.entries[name] = entry;
+            }
+
+        }
+
     }
 
 }

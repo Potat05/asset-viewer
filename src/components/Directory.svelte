@@ -1,7 +1,7 @@
 
 <script lang="ts">
-    import { fsEntry, type fsDirectory } from "$lib/FileSystem";
-    import { findViewer, openViewer } from "$lib/viewer/Viewer";
+    import { fsEntry, type fsDirectory, type fsFile } from "$lib/FileSystem";
+    import { findViewer, openViewer } from "$lib/Viewer";
     import { onMount } from "svelte";
     import File from "./File.svelte";
 
@@ -9,10 +9,23 @@
 
     export let expanded: boolean = false;
 
+    let entries: (fsFile | fsDirectory)[];
+
 
 
     onMount(async () => {
-        dir.viewer = await findViewer(dir);
+        // await findViewer(dir);
+
+        const list = Object.values(await dir.list());
+
+        for(const entry of list) {
+
+            await findViewer(entry);
+
+        }
+
+        entries = Object.values(await dir.list());
+
     });
 
 </script>
@@ -36,29 +49,25 @@
     
     <button on:click={() => { expanded = !expanded }}>{dir.name}</button>
 
-    {#if dir.viewer}
+    {#if dir.viewer?.createViewer}
 
         <button on:click={() => openViewer(dir)}>OPEN</button>
 
     {/if}
 
-    {#if expanded}
+    {#if expanded && entries}
 
         <div class="dir-entries">
         
-            {#await dir.list() then entries }
-                
-                {#each Object.entries(entries) as [ name, entry ]}
-        
-                    {#if entry.type == fsEntry.File}
-                        <File file={entry} />
-                    {:else if entry.type == fsEntry.Directory}
-                        <svelte:self dir={entry} />
-                    {/if}
-        
-                {/each}
-        
-            {/await}
+            {#each entries as entry}
+    
+                {#if entry.type == fsEntry.File}
+                    <File file={entry} />
+                {:else if entry.type == fsEntry.Directory}
+                    <svelte:self dir={entry} />
+                {/if}
+    
+            {/each}
         
         </div>
 
