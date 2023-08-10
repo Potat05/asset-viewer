@@ -91,6 +91,9 @@ createNewViewer(TextViewer);
 import ImageViewer from "./viewers/basic/image";
 createNewViewer(ImageViewer);
 
+import VideoViewer from "./viewers/basic/video";
+createNewViewer(VideoViewer);
+
 
 
 import RenPyArchiveViewer from "./viewers/renpy/archive";
