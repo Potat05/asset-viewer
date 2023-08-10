@@ -1,4 +1,5 @@
 import { fsEntry } from "$lib/FileSystem";
+import { Utils } from "$lib/Utils";
 import type { Viewer } from "$lib/Viewer";
 import Viewer_Text from "../../../components/viewers/basic/Text.svelte";
 
@@ -6,15 +7,7 @@ const viewer: Viewer = {
     namespace: 'textfile',
     priority: 0,
     isValid: async entry => {
-        return entry.type == fsEntry.File && [
-            'txt',
-            'json',
-            'js',
-            'ts',
-            'svelte',
-            'md',
-            'html'
-        ].includes(entry.name.split('.').pop() ?? '');
+        return entry.type == fsEntry.File && !Utils.isBinary(await (await entry.blob()).slice(0, 1024).arrayBuffer());
     },
     createViewer: async (entry, target) => {
 
