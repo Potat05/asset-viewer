@@ -50,7 +50,7 @@ export async function findViewer(entry: fsFile | fsDirectory) {
 
         if(entry.viewer.transform) {
             const transform = await entry.viewer.transform(entry);
-            fsUtils.transform(entry, transform);
+            await fsUtils.transform(entry, transform);
         }
 
     }
