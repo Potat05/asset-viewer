@@ -191,6 +191,8 @@ export class ArchiveReader extends DataReader {
 
             const file = new ArchiveFile(this.blob, sections, name, null);
 
+            // TODO: Implement setDeep in here so we can set entries asynchronously
+            // Currently we cannot if we do some setDeep calls may clash and overwrite one another.
             await fsUtils.setDeep(dir, path, file);
 
         }

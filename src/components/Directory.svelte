@@ -21,11 +21,9 @@
 
         const list = Object.values(await dir.list());
 
-        for(const entry of list) {
-
-            await findViewer(entry);
-
-        }
+        await Promise.all(list.map(entry => {
+            return findViewer(entry);
+        }))
 
         entries = Object.values(await dir.list());
 
