@@ -67,13 +67,17 @@ viewerContainerStore.subscribe(elem => {
 
 export function openViewer(entry: fsFile | fsDirectory) {
     
-    console.debug(`Opening viewer for "${fsUtils.getPath(entry)}"`, entry);
-
     const viewer = entry.viewer;
-
+    
     if(viewer == null) return;
 
-    viewer.createViewer?.(entry, viewerContainer);
+    if(viewer.createViewer) {
+    
+        console.debug(`Opening viewer for "${fsUtils.getPath(entry)}"`, entry);
+    
+        viewer.createViewer(entry, viewerContainer);
+
+    }
 
 }
 
