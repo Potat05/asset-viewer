@@ -22,8 +22,7 @@ const viewer: Viewer = {
 
         return dir;
 
-    },
-    createViewer: null
+    }
 };
 
 export default viewer;

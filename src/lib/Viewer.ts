@@ -12,8 +12,8 @@ export interface Viewer {
     priority: number;
 
     isValid: (entry: fsFile | fsDirectory) => Promise<boolean>;
-    transform: ((entry: fsFile | fsDirectory) => Promise<fsFile | fsDirectory | null>) | null;
-    createViewer: ((entry: fsFile | fsDirectory, target: Element | Document | ShadowRoot) => Promise<void>) | null;
+    transform?: ((entry: fsFile | fsDirectory) => Promise<fsFile | fsDirectory | null>);
+    createViewer?: ((entry: fsFile | fsDirectory, target: Element | Document | ShadowRoot) => Promise<void>);
     
 }
 

@@ -16,7 +16,6 @@ const viewer: Viewer = {
             'html'
         ].includes(entry.name.split('.').pop() ?? '');
     },
-    transform: null,
     createViewer: async (entry, target) => {
 
         if(entry.type == fsEntry.File) {
