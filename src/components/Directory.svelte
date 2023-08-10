@@ -12,6 +12,9 @@
 
     export let expanded: boolean = false;
 
+    let displayed: boolean = false;
+    $: if(expanded && !displayed) displayed = true;
+
     let entries: (fsFile | fsDirectory)[];
 
 
@@ -48,6 +51,10 @@
         padding-left: 25px;
 
         border-left: 1px lightgray solid;
+    }
+
+    .hidden {
+        display: none;
     }
 
     .title {
@@ -103,9 +110,12 @@
 
     </div>
 
-    {#if expanded && entries}
+    {#if entries && displayed}
 
-        <div class="dir-entries">
+        <div
+            class="dir-entries"
+            class:hidden={!expanded}
+        >
         
             {#each entries as entry}
     

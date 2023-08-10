@@ -102,7 +102,8 @@
 />
 
 <div
-    class="file-dropzone{dropzoneVisible ? ' visible' : ''}"
+    class="file-dropzone"
+    class:visible={dropzoneVisible}
 >
     <div class="dropzone-content">
         <div class="dropzone-text">
