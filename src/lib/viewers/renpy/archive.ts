@@ -3,7 +3,7 @@ import type { Viewer } from "$lib/Viewer";
 import { ArchiveReader } from "$lib/renpy/archive";
 
 const viewer: Viewer = {
-    namespace: 'renpy.archivefile',
+    namespace: 'renpy.archive',
     priority: 10,
     isValid: async entry => {
         return entry.type == fsEntry.File && entry.name.endsWith('.rpa');

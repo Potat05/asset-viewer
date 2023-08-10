@@ -3,7 +3,7 @@ import type { Viewer } from "$lib/Viewer";
 import Viewer_Video from "../../../components/viewers/basic/Video.svelte";
 
 const viewer: Viewer = {
-    namespace: 'videofile',
+    namespace: 'video',
     priority: 1,
     isValid: async entry => {
         return entry.type == fsEntry.File && [

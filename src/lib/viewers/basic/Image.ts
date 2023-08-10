@@ -3,7 +3,7 @@ import type { Viewer } from "$lib/Viewer";
 import Viewer_Image from "../../../components/viewers/basic/Image.svelte";
 
 const viewer: Viewer = {
-    namespace: 'imagefile',
+    namespace: 'image',
     priority: 1,
     isValid: async entry => {
         return entry.type == fsEntry.File && [

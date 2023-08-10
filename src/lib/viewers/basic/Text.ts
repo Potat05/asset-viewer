@@ -4,10 +4,13 @@ import type { Viewer } from "$lib/Viewer";
 import Viewer_Text from "../../../components/viewers/basic/Text.svelte";
 
 const viewer: Viewer = {
-    namespace: 'textfile',
+    namespace: 'text',
     priority: 0,
     isValid: async entry => {
-        return entry.type == fsEntry.File && !Utils.isBinary(await (await entry.blob()).slice(0, 1024).arrayBuffer());
+        if(entry.type != fsEntry.File) return false;
+        const blob = await entry.blob();
+        if(blob.size == 0) return true;
+        return !Utils.isBinary(await (await entry.blob()).slice(0, 1024).arrayBuffer());
     },
     createViewer: async (entry, target) => {
 
