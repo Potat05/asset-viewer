@@ -117,7 +117,7 @@ export namespace fsUtils {
             throw new Error('Catastrophic error that should never happen.');
         }
 
-        return entry.get(name);
+        return await entry.get(name);
 
     }
 
@@ -126,37 +126,31 @@ export namespace fsUtils {
      */
     export async function setDeep(dir: fsDirectory, path: string, setEntry: fsFile | fsDirectory | null) {
 
-        let stack = fixPath(path).split('/');
+        const split = fixPath(path).split('/');
+        const nextPath = split.shift();
 
-        let entry = dir;
-
-        while(stack.length > 1) {
-
-            const name = stack.shift();
-            if(name == undefined) {
-                throw new Error('Catastrophic error that should never happen.');
-            }
-
-            let get = await dir.get(name);
-
-            if(get == null) {
-                get = new fsUtils.fsDirectory_Container(name, entry);
-                entry.set(name, get);
-            }
-            if(get.type != fsEntry.Directory) {
-                throw new Error('setDeep incountered a file in path.');
-            }
-
-            entry = get;
-
+        if(nextPath == undefined) {
+            throw new Error('setDeep empty path.');
         }
 
-        const name = stack.shift();
-        if(name == undefined) {
-            throw new Error('Catastrophic error that should never happen.');
-        }
+        if(split.length == 0) {
 
-        entry.set(name, setEntry);
+            await dir.set(nextPath, setEntry);
+
+        } else {
+
+            let nextDir = await dir.get(nextPath);
+
+            if(nextDir == null) {
+                nextDir = new fsDirectory_Container(nextPath, dir);
+                await dir.set(nextPath, nextDir);
+            } else if(nextDir.type != fsEntry.Directory) {
+                throw new Error('setDeep encountered a file.');
+            }
+
+            await setDeep(nextDir, split.join('/'), setEntry);
+
+        }
 
     }
 
@@ -170,7 +164,7 @@ export namespace fsUtils {
 
         if(to == null) {
 
-            entry.parent.set(entry.name, null);
+            await entry.parent.set(entry.name, null);
             
         } else {
             
@@ -178,7 +172,7 @@ export namespace fsUtils {
             to.name = entry.name;
             to.parent = entry.parent;
     
-            entry.parent.set(entry.name, to);
+            await entry.parent.set(entry.name, to);
 
         }
 
