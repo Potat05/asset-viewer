@@ -1,7 +1,7 @@
 
 <script lang="ts">
     import { fsEntry, type fsDirectory, type fsFile } from "$lib/FileSystem";
-    import { findViewer } from "$lib/Viewer";
+    import { findViewers } from "$lib/Viewer";
     import { onMount } from "svelte";
     import File from "./File.svelte";
 
@@ -23,7 +23,7 @@
         const list = Object.values(await dir.list());
 
         await Promise.all(list.map(entry => {
-            return findViewer(entry);
+            return findViewers(entry);
         }))
 
         entries = Object.values(await dir.list());

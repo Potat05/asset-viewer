@@ -17,6 +17,10 @@ export interface Viewer {
     
 }
 
+export interface Viewable {
+    viewer: null | Viewer;
+}
+
 
 
 export let viewerRegistry: Viewer[] = [];
@@ -33,7 +37,7 @@ export function createNewViewer(viewer: Viewer) {
 
 
 
-export async function findViewer(entry: fsFile | fsDirectory) {
+export async function findViewers(entry: fsFile | fsDirectory) {
 
     if(entry.viewer != null) return;
 

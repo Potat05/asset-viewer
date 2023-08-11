@@ -1,5 +1,5 @@
 import Directory from "../components/Directory.svelte";
-import type { Viewer } from "./Viewer";
+import type { Viewable, Viewer } from "./Viewer";
 
 
 
@@ -10,9 +10,8 @@ export enum fsEntry {
 
 
 
-export interface fsFile {
+export interface fsFile extends Viewable {
     readonly type: fsEntry.File;
-    viewer: Viewer | null;
     name: string;
     parent: fsDirectory | null;
 
@@ -22,9 +21,8 @@ export interface fsFile {
 
 
 
-export interface fsDirectory {
+export interface fsDirectory extends Viewable {
     readonly type: fsEntry.Directory;
-    viewer: Viewer | null;
     name: string;
     parent: fsDirectory | null;
 
@@ -223,8 +221,9 @@ export namespace fsUtils {
 
 
     export class fsFile_Blob implements fsFile {
+        public viewer: null | Viewer = null;
+
         public readonly type: fsEntry.File = fsEntry.File;
-        public viewer: Viewer | null = null;
         public readonly name: string;
         public parent: fsDirectory | null;
         private _blob: Blob;
@@ -248,9 +247,9 @@ export namespace fsUtils {
 
 
     export class fsDirectory_Container implements fsDirectory {
+        public viewer: null | Viewer = null;
 
         public readonly type: fsEntry.Directory = fsEntry.Directory;
-        public viewer: Viewer | null = null;
         public readonly name: string;
         public parent: fsDirectory | null;
 
