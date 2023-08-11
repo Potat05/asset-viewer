@@ -5,8 +5,6 @@ import Viewer_Code from "../../../components/viewers/basic/Code.svelte";
 
 
 
-
-
 let LANGS: {[key: string]: LanguageType<string>} = {};
 
 import lang_javascript from "svelte-highlight/languages/javascript";
@@ -21,6 +19,11 @@ import lang_xml from "svelte-highlight/languages/xml";
 LANGS['xml'] = lang_xml;
 LANGS['html'] = lang_xml;
 LANGS['svelte'] = lang_xml;
+
+import lang_markdown from "svelte-highlight/languages/markdown";
+LANGS['md'] = lang_markdown;
+LANGS['MD'] = lang_markdown;
+
 
 
 const viewer: Viewer = {
