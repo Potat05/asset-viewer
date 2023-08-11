@@ -105,3 +105,6 @@ createNewViewer(CodeViewer);
 
 import RenPyArchiveViewer from "./viewers/renpy/archive";
 createNewViewer(RenPyArchiveViewer);
+
+import RenPyScriptViewer from "./viewers/renpy/script";
+createNewViewer(RenPyScriptViewer);
