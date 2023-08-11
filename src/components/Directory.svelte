@@ -26,7 +26,10 @@
             return findViewers(entry);
         }))
 
-        entries = Object.values(await dir.list());
+        entries = Object.values(await dir.list())
+            .sort((a, b) => {
+                return a.name.localeCompare(b.name) + (b.type - a.type) * 1000;
+            });
 
     });
 
