@@ -1,8 +1,5 @@
 import { fsEntry } from "$lib/FileSystem";
-import { Utils } from "$lib/Utils";
 import type { Viewer } from "$lib/Viewer";
-import { decompileScript } from "$lib/renpy/script/decompile";
-import { loadScript } from "$lib/renpy/script/load";
 import Viewer_RenPy_Script from "../../../components/viewers/renpy/Script.svelte";
 
 const viewer: Viewer = {
