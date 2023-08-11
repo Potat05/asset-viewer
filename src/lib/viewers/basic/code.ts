@@ -24,6 +24,12 @@ import lang_markdown from "svelte-highlight/languages/markdown";
 LANGS['md'] = lang_markdown;
 LANGS['MD'] = lang_markdown;
 
+import lang_python from "svelte-highlight/languages/python";
+LANGS['py'] = lang_python;
+
+import lang_bash from "svelte-highlight/languages/bash";
+LANGS['sh'] = lang_bash;
+
 
 
 const viewer: Viewer = {

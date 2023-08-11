@@ -1,24 +1,18 @@
 
 <script lang="ts">
     import type { fsFile } from "$lib/FileSystem";
+    import Highlight from "svelte-highlight/Highlight.svelte";
+    import lang_plaintext from "svelte-highlight/languages/plaintext";
 
     export let entry: fsFile;
 
 </script>
 
-<style>
-
-    pre {
-        color: white;
-    }
-
-</style>
-
 {#await entry.blob() then blob}
 
     {#await blob.text() then text}
 
-        <pre>{text}</pre>
+        <Highlight language={lang_plaintext} code={text} />
 
     {/await}
 
