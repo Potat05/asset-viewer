@@ -118,6 +118,11 @@ createNewViewer(CodeViewer);
 
 
 
+import ExecutableViewer from "./viewers/advanced/executable";
+createNewViewer(ExecutableViewer);
+
+
+
 import RenPyArchiveViewer from "./viewers/renpy/archive";
 createNewViewer(RenPyArchiveViewer);
 
