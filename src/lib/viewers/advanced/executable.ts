@@ -5,6 +5,30 @@ import type { Viewer } from "$lib/Viewer";
 
 
 
+interface DirResource {
+    characteristics: number;
+    timeDateStamp: number;
+    majorVersion: number;
+    minorVersion: number;
+    numberOfNamedEntries: number;
+    numberOfIdEntries: number;
+    entries: (
+        {
+            isStr: boolean;
+            value: number;
+            isDir: false;
+            offset: number;
+        } | {
+            isStr: boolean;
+            value: number;
+            isDir: true;
+            dir: DirResource;
+        }
+    )[];
+}
+
+
+
 class ExecutableReader extends DataReader {
 
     skip(bytes: number) {
@@ -203,24 +227,56 @@ class ExecutableReader extends DataReader {
 
     }
 
-    readResources() {
+    readResources(start: number = this.pointer, offset?: number): DirResource {
+
+        if(offset !== undefined) {
+            this.pointer = start + offset;
+        }
 
         const characteristics = this.readNumber('Uint32');
         const timeDateStamp = this.readNumber('Uint32');
         const majorVersion = this.readNumber('Uint16');
         const minorVersion = this.readNumber('Uint16');
-        const numberOfNamedEntries = this.readNumber('Uint16'); // TODO: Does this change the structure?
+        const numberOfNamedEntries = this.readNumber('Uint16');
         const numberOfIdEntries = this.readNumber('Uint16');
-
-        const idEntries = this.readArray(() => {
+        const entries = this.readArray(() => {
             return {
                 value: this.readNumber('Uint32'),
-                offset: this.readNumber('Uint16'),
-                unknown: this.readNumber('Uint16') // TODO: What is this?
+                offset: this.readNumber('Uint32')
             }
-        }, numberOfIdEntries);
+        }, numberOfNamedEntries + numberOfIdEntries).map(entry => {
 
-        return idEntries;
+            let value = entry.value;
+            const isStr = !!(value & 0x80000000);
+            value &= 0x7FFFFFFF;
+
+            let offset = entry.offset;
+            const isDir = !!(offset & 0x80000000);
+            offset &= 0x7FFFFFFF;
+
+            if(!isDir) {
+                return {
+                    isStr, value,
+                    isDir: false, offset
+                } as const
+            } else {
+                return {
+                    isStr, value,
+                    isDir: true, dir: this.readResources(start, offset)
+                } as const
+            }
+
+        });
+
+        return {
+            characteristics,
+            timeDateStamp,
+            majorVersion,
+            minorVersion,
+            numberOfNamedEntries,
+            numberOfIdEntries,
+            entries
+        }
 
     }
 
@@ -248,32 +304,36 @@ async function extractIcon(file: Blob) {
 
     reader.pointer = resourceSectionHeader.pointerToRawData;
     const resourcesStart = reader.pointer;
-    const resources = reader.readResources();
+    const resources = reader.readResources(resourcesStart);
 
-    const iconResource = resources.find(resource => resource.value == 0x00000003);
-    if(!iconResource) return;
+    console.log(resources);
 
-    reader.pointer = resourcesStart + iconResource.offset;
-    const iconResources = reader.readResources();
+    // console.log(resources);
 
-    for(const icon of iconResources) {
+    // const iconResource = resources.find(resource => resource.value == 0x00000003);
+    // if(!iconResource) return;
 
-        reader.pointer = resourcesStart + icon.offset;
+    // reader.pointer = resourcesStart + iconResource.offset;
+    // const iconResources = reader.readResources();
 
-        const res = reader.readResources();
+    // for(const icon of iconResources) {
 
-        reader.pointer = resourcesStart + res[0].offset;
-        const offsetToData = reader.readNumber('Uint32'); // TODO: Figure out how to convert virtual address to raw address.
-        const dataSize = reader.readNumber('Uint32');
-        const codePage = reader.readNumber('Uint32');
-        const reserved = reader.readNumber('Uint32');
+    //     reader.pointer = resourcesStart + icon.offset;
 
-        console.log(NumberUtils.hex(offsetToData, 4), NumberUtils.hex(dataSize, 4));
+    //     const res = reader.readResources();
 
-        reader.pointer = offsetToData;
-        console.log(reader.readBuffer(dataSize));
+    //     reader.pointer = resourcesStart + res[0].offset;
+    //     const offsetToData = reader.readNumber('Uint32'); // TODO: Figure out how to convert virtual address to raw address.
+    //     const dataSize = reader.readNumber('Uint32');
+    //     const codePage = reader.readNumber('Uint32');
+    //     const reserved = reader.readNumber('Uint32');
 
-    }
+    //     console.log(NumberUtils.hex(offsetToData, 4), NumberUtils.hex(dataSize, 4));
+
+    //     reader.pointer = offsetToData;
+    //     console.log(reader.readBuffer(dataSize));
+
+    // }
 
 }
 
