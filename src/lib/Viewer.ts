@@ -12,9 +12,10 @@ export interface Viewer {
     priority: number;
 
     isValid: (entry: fsFile | fsDirectory) => Promise<boolean>;
-    transform?: ((entry: fsFile | fsDirectory) => Promise<fsFile | fsDirectory | null>);
-    createViewer?: ((entry: fsFile | fsDirectory, target: Element | Document | ShadowRoot) => Promise<void>);
-    
+    transform?: (entry: fsFile | fsDirectory) => Promise<fsFile | fsDirectory | null>;
+    createViewer?: (entry: fsFile | fsDirectory, target: Element | Document | ShadowRoot) => Promise<void>;
+    getIcon?: ((entry: fsFile | fsDirectory) => Promise<string | null>);
+
 }
 
 export interface Viewable {
@@ -82,6 +83,20 @@ export function openViewer(entry: fsFile | fsDirectory) {
         viewer.createViewer(entry, viewerContainer);
 
     }
+
+}
+
+export async function viewerIcon(entry: fsFile | fsDirectory): Promise<string | null> {
+
+    const viewer = entry.viewer;
+
+    if(viewer == null) return null;
+
+    if(viewer.getIcon) {
+        return await viewer.getIcon(entry);
+    }
+
+    return null;
 
 }
 

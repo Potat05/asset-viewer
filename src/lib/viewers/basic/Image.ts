@@ -26,6 +26,15 @@ const viewer: Viewer = {
             throw new Error('Tried to create image viewer with directory.');
         }
 
+    },
+    getIcon: async entry => {
+
+        if(entry.type == fsEntry.File) {
+            return URL.createObjectURL(await entry.blob());
+        }
+        
+        return null;
+
     }
 };
 

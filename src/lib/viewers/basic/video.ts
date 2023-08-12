@@ -20,6 +20,9 @@ const viewer: Viewer = {
             throw new Error('Tried to create video viewer with directory.');
         }
 
+    },
+    getIcon: async () => {
+        return "/bootstrap-icons/file-play.svg";
     }
 };
 

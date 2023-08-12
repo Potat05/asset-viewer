@@ -1,6 +1,6 @@
 
 <script lang="ts">
-    import { openViewer } from "$lib/Viewer";
+    import { openViewer, viewerIcon } from "$lib/Viewer";
     import type { fsFile } from "$lib/FileSystem";
 
     export let file: fsFile;
@@ -31,6 +31,16 @@
         margin: 5px;
     }
 
+    .icon-container {
+        height: 24px;
+        margin: 0;
+        padding: 2px;
+    }
+
+    .icon-container > * {
+        height: 100%;
+    }
+
 </style>
 
 
@@ -44,9 +54,24 @@
         on:click={() => openViewer(file)}
     >
 
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark" viewBox="0 0 16 16">
-            <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
-        </svg>
+        {#await viewerIcon(file) then icon}
+
+            <div class="icon-container">
+
+                {#if icon == null}
+
+                    <img src="/bootstrap-icons/file-earmark.svg" alt="File Icon">
+
+                {:else}
+
+                    <img src={icon} alt="File Icon"/>
+
+                {/if}
+
+            </div>
+            
+        {/await}
+
 
         <div class="name">{file.name}</div>
 
