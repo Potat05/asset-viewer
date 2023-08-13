@@ -15,12 +15,12 @@ interface DirResource {
     entries: (
         {
             isStr: boolean;
-            value: number;
+            type: number;
             isDir: false;
             offset: number;
         } | {
             isStr: boolean;
-            value: number;
+            type: number;
             isDir: true;
             dir: DirResource;
         }
@@ -241,14 +241,14 @@ class ExecutableReader extends DataReader {
         const numberOfIdEntries = this.readNumber('Uint16');
         const entries = this.readArray(() => {
             return {
-                value: this.readNumber('Uint32'),
+                type: this.readNumber('Uint32'),
                 offset: this.readNumber('Uint32')
             }
         }, numberOfNamedEntries + numberOfIdEntries).map(entry => {
 
-            let value = entry.value;
-            const isStr = !!(value & 0x80000000);
-            value &= 0x7FFFFFFF;
+            let type = entry.type;
+            const isStr = !!(type & 0x80000000);
+            type &= 0x7FFFFFFF;
 
             let offset = entry.offset;
             const isDir = !!(offset & 0x80000000);
@@ -256,12 +256,12 @@ class ExecutableReader extends DataReader {
 
             if(!isDir) {
                 return {
-                    isStr, value,
+                    isStr, type,
                     isDir: false, offset
                 } as const
             } else {
                 return {
-                    isStr, value,
+                    isStr, type,
                     isDir: true, dir: this.readResources(start, offset)
                 } as const
             }
@@ -299,6 +299,8 @@ async function extractIcon(file: Blob) {
     reader.pointer = optionalHeaderStart + fileHeader.sizeOfOptionalHeader;
     const sectionHeaders = reader.readSectionHeaders(fileHeader.sectionsCount);
 
+
+
     const resourceSectionHeader = sectionHeaders.find(section => section.name == '.rsrc\x00\x00\x00');
     if(!resourceSectionHeader) return;
 
@@ -306,34 +308,32 @@ async function extractIcon(file: Blob) {
     const resourcesStart = reader.pointer;
     const resources = reader.readResources(resourcesStart);
 
-    console.log(resources);
 
-    // console.log(resources);
 
-    // const iconResource = resources.find(resource => resource.value == 0x00000003);
-    // if(!iconResource) return;
+    const iconResource = resources.entries.find(resource => resource.type == 0x00000003);
+    if(!iconResource || !iconResource.isDir) return;
 
-    // reader.pointer = resourcesStart + iconResource.offset;
-    // const iconResources = reader.readResources();
+    const biggestIcon = iconResource.dir.entries[0];
+    if(!biggestIcon || !biggestIcon.isDir) return;
 
-    // for(const icon of iconResources) {
+    const biggestIconData = biggestIcon.dir.entries[0];
+    if(!biggestIconData || biggestIconData.isDir) return;
 
-    //     reader.pointer = resourcesStart + icon.offset;
+    reader.pointer = resourcesStart + biggestIconData.offset;
 
-    //     const res = reader.readResources();
+    const virtualOffsetToData = reader.readNumber('Uint32');
+    const dataSize = reader.readNumber('Uint32');
+    const codePage = reader.readNumber('Uint32');
+    const reserved = reader.readNumber('Uint32');
 
-    //     reader.pointer = resourcesStart + res[0].offset;
-    //     const offsetToData = reader.readNumber('Uint32'); // TODO: Figure out how to convert virtual address to raw address.
-    //     const dataSize = reader.readNumber('Uint32');
-    //     const codePage = reader.readNumber('Uint32');
-    //     const reserved = reader.readNumber('Uint32');
+    const offsetToData = virtualOffsetToData - resourceSectionHeader.virtualAddress + resourceSectionHeader.pointerToRawData;
 
-    //     console.log(NumberUtils.hex(offsetToData, 4), NumberUtils.hex(dataSize, 4));
+    reader.pointer = offsetToData;
 
-    //     reader.pointer = offsetToData;
-    //     console.log(reader.readBuffer(dataSize));
+    // Image data may be either .ico or png
+    const imgData = reader.readBuffer(dataSize);
 
-    // }
+    return imgData;
 
 }
 
@@ -348,7 +348,13 @@ const viewer: Viewer = {
     getIcon: async entry => {
 
         if(entry.type == fsEntry.File) {
-            console.log(await extractIcon(await entry.blob()));
+
+            const iconData = await extractIcon(await entry.blob());
+
+            if(!iconData) return null;
+
+            return URL.createObjectURL(new Blob([ iconData ]));
+
         }
 
         return null;
