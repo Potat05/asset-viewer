@@ -2,6 +2,7 @@ import { DataReader } from "$lib/DataReader";
 import { fsEntry } from "$lib/FileSystem";
 import { ImageUtils } from "$lib/ImageUtils";
 import { NumberUtils } from "$lib/NumberUtils";
+import { TypeUtils } from "$lib/TypeUtils";
 import type { Viewer } from "$lib/Viewer";
 
 
@@ -314,24 +315,44 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
     const iconResource = resources.entries.find(resource => resource.type == 0x00000003);
     if(!iconResource || !iconResource.isDir) return;
 
-    const biggestIcon = iconResource.dir.entries[0];
-    if(!biggestIcon || !biggestIcon.isDir) return;
+    const icons = iconResource.dir.entries.map(entry => {
 
-    const biggestIconData = biggestIcon.dir.entries[0];
-    if(!biggestIconData || biggestIconData.isDir) return;
+        if(!entry || !entry.isDir) {
+            return null;
+        }
 
-    reader.pointer = resourcesStart + biggestIconData.offset;
+        const entryData = entry.dir.entries[0];
 
-    const virtualOffsetToData = reader.readNumber('Uint32');
-    const dataSize = reader.readNumber('Uint32');
-    const codePage = reader.readNumber('Uint32');
-    const reserved = reader.readNumber('Uint32');
+        if(!entryData || entryData.isDir) {
+            return null;
+        }
 
-    const offsetToData = virtualOffsetToData - resourceSectionHeader.virtualAddress + resourceSectionHeader.pointerToRawData;
+        reader.pointer = resourcesStart + entryData.offset;
+
+        const virtualOffsetToData = reader.readNumber('Uint32');
+
+        return {
+            offset: virtualOffsetToData - resourceSectionHeader.virtualAddress + resourceSectionHeader.pointerToRawData,
+            size: reader.readNumber('Uint32'),
+            codePage: reader.readNumber('Uint32'),
+            reserved: reader.readNumber('Uint32')
+        }
+
+    }).filter(TypeUtils.isNotNull);
+
+    // TODO: Select from the 0th icon group.
+    const icon = icons.reduce((biggest, icon) => {
+        if(biggest == undefined) return icon;
+        if(icon.size > biggest.size) {
+            return icon;
+        } else {
+            return biggest;
+        }
+    });
 
     // Reading the actual image data.
-    reader.pointer = offsetToData;
-    reader.loadData(reader.readBuffer(dataSize));
+    reader.pointer = icon.offset;
+    reader.loadData(reader.readBuffer(icon.size));
     
     // Image data may be either .ico or png
     if(reader.magic([
