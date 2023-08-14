@@ -10,7 +10,7 @@
 
 
 
-import { DataReader } from "$lib/DataReader";
+import { BlobReader } from "$lib/BlobReader";
 import { fsEntry } from "$lib/FileSystem";
 import { ImageUtils } from "$lib/ImageUtils";
 import { TypeUtils } from "$lib/TypeUtils";
@@ -42,13 +42,11 @@ interface DirResource {
 
 
 
-class ExecutableReader extends DataReader {
+class ExecutableReader extends BlobReader {
 
-    skip(bytes: number) {
-        this.pointer += bytes;
-    }
+    async readDOSHeader() {
 
-    readDOSHeader() {
+        await this.load(0x40);
 
         this.assertMagic(0x5A4D, 'Uint16');
 
@@ -66,16 +64,18 @@ class ExecutableReader extends DataReader {
             initialRelCSValue: this.readNumber('Uint16'),
             fileAddressOfRelocationTable: this.readNumber('Uint16'),
             overlayNumber: this.readNumber('Uint16'),
-            reserved1: this.skip(8),
+            reserved1: this.readBuffer(8),
             OEMIdentifier: this.readNumber('Uint16'),
             OEMInformation: this.readNumber('Uint16'),
-            reserved2: this.skip(20),
+            reserved2: this.readBuffer(20),
             fileAddressOfNewExeHeader: this.readNumber('Uint32')
         }
 
     }
 
-    readFileHeader() {
+    async readFileHeader() {
+
+        await this.load(0x18);
 
         this.assertMagic(0x00004550, 'Uint32');
 
@@ -299,17 +299,17 @@ class ExecutableReader extends DataReader {
 
 async function extractIcon(file: Blob): Promise<string | undefined> {
 
-    const reader = new ExecutableReader(await file.arrayBuffer());
+    const reader = new ExecutableReader(file);
 
-    const dosHeader = reader.readDOSHeader();
+    const dosHeader = await reader.readDOSHeader();
 
-    reader.pointer = dosHeader.fileAddressOfNewExeHeader;
-    const fileHeader = reader.readFileHeader();
+    reader.blobPointer = dosHeader.fileAddressOfNewExeHeader;
+    const fileHeader = await reader.readFileHeader();
 
-    const optionalHeaderStart = reader.pointer;
+    await reader.load(fileHeader.sizeOfOptionalHeader);
     const optionalHeader = reader.readOptionalHeader();
-
-    reader.pointer = optionalHeaderStart + fileHeader.sizeOfOptionalHeader;
+    
+    await reader.load(optionalHeader.sizeOfHeaders);
     const sectionHeaders = reader.readSectionHeaders(fileHeader.sectionsCount);
 
 
@@ -317,16 +317,13 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
     const resourceSectionHeader = sectionHeaders.find(section => section.name == '.rsrc\x00\x00\x00');
     if(!resourceSectionHeader) return;
 
-    reader.pointer = resourceSectionHeader.pointerToRawData;
-    const resourcesStart = reader.pointer;
-    const resources = reader.readResources(resourcesStart);
-
-
+    await reader.load(resourceSectionHeader.sizeOfRawData, resourceSectionHeader.pointerToRawData);
+    const resources = reader.readResources();
 
     const iconResource = resources.entries.find(resource => resource.type == 0x00000003);
     if(!iconResource || !iconResource.isDir) return;
 
-    const icons = iconResource.dir.entries.map(entry => {
+    const icons = (await Promise.all(iconResource.dir.entries.map(async entry => {
 
         if(!entry || !entry.isDir) {
             return null;
@@ -338,7 +335,7 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
             return null;
         }
 
-        reader.pointer = resourcesStart + entryData.offset;
+        await reader.load(16, resourceSectionHeader.pointerToRawData + entryData.offset)
 
         const virtualOffsetToData = reader.readNumber('Uint32');
 
@@ -349,7 +346,7 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
             reserved: reader.readNumber('Uint32')
         }
 
-    }).filter(TypeUtils.isNotNull);
+    }))).filter(TypeUtils.isNotNull);
 
     // TODO: Select from the 0th icon group.
     const icon = icons.reduce((biggest, icon) => {
@@ -362,8 +359,7 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
     });
 
     // Reading the actual image data.
-    reader.pointer = icon.offset;
-    reader.loadData(reader.readBuffer(icon.size));
+    await reader.load(icon.size, icon.offset);
     
     // Image data may be either .ico or png
     if(reader.magic([
