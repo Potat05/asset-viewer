@@ -397,13 +397,14 @@ const viewer: Viewer = {
 
             const iconData = await extractIcon(await entry.blob());
 
-            if(!iconData) return null;
+            if(!iconData) return '/bootstrap-icons/filetype-exe.svg';
 
             return iconData;
 
         }
 
         return null;
+
     }
 };
 
