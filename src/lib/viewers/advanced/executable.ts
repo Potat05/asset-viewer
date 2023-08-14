@@ -1,7 +1,18 @@
+
+/*
+
+    A huge help while making this:
+        https://github.com/hasherezade/pe-bear/
+    It has an insanely good and easy to use UI that made it
+    easy to understand how executables are structured.
+
+*/
+
+
+
 import { DataReader } from "$lib/DataReader";
 import { fsEntry } from "$lib/FileSystem";
 import { ImageUtils } from "$lib/ImageUtils";
-import { NumberUtils } from "$lib/NumberUtils";
 import { TypeUtils } from "$lib/TypeUtils";
 import type { Viewer } from "$lib/Viewer";
 
