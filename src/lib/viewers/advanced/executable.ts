@@ -345,17 +345,39 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
         // PNG icon
         return URL.createObjectURL(new Blob([ reader.buffer ]));
 
-    } else if(true) {
-
-        reader.pointer = 0;
-
-        console.log(reader.buffer);
-
-        // ICO icon
-
     } else {
 
-        throw new Error('Unknown icon format.');
+        // BMP icon
+        // https://en.wikipedia.org/wiki/ICO_(file_format)#:~:text=ICO/CUR%20file-,Referenced%20image%20data,-%5Bedit%5D
+        
+
+        // Construct full BMP data
+        reader.pointer = 0;
+        const DIBSize = reader.readNumber('Uint32');
+
+        const view = new DataView(new ArrayBuffer(reader.length + 14));
+
+        view.setUint8(0, 0x42);
+        view.setUint8(1, 0x4D);
+
+        view.setUint32(2, view.byteLength, true);
+        view.setUint32(10, 14 + DIBSize, true);
+
+        new Uint8Array(view.buffer).set(new Uint8Array(reader.buffer), 14);
+
+
+        // Decode BMP data
+        const imgData = await ImageUtils.imgBuffer2imgData(view.buffer);
+
+        // Mask imagedata
+
+        // TODO
+        // For now we just only use the bottom half of the img. (Because I'm lazy.)
+
+        const newImgData = new ImageData(imgData.width, imgData.height >> 1);
+        newImgData.data.set(imgData.data.slice(imgData.width * (imgData.height >> 1) * 4));
+
+        return ImageUtils.imgData2url(newImgData);
 
     }
 
