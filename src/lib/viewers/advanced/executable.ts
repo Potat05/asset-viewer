@@ -1,5 +1,6 @@
 import { DataReader } from "$lib/DataReader";
 import { fsEntry } from "$lib/FileSystem";
+import { ImageUtils } from "$lib/ImageUtils";
 import { NumberUtils } from "$lib/NumberUtils";
 import type { Viewer } from "$lib/Viewer";
 
@@ -284,7 +285,7 @@ class ExecutableReader extends DataReader {
 
 
 
-async function extractIcon(file: Blob) {
+async function extractIcon(file: Blob): Promise<string | undefined> {
 
     const reader = new ExecutableReader(await file.arrayBuffer());
 
@@ -328,12 +329,35 @@ async function extractIcon(file: Blob) {
 
     const offsetToData = virtualOffsetToData - resourceSectionHeader.virtualAddress + resourceSectionHeader.pointerToRawData;
 
+    // Reading the actual image data.
     reader.pointer = offsetToData;
-
+    reader.loadData(reader.readBuffer(dataSize));
+    
     // Image data may be either .ico or png
-    const imgData = reader.readBuffer(dataSize);
+    if(reader.magic([
+        0x89,
+        0x50, 0x4E, 0x47,
+        0x0D, 0x0A,
+        0x1A,
+        0x0A
+    ])) {
 
-    return imgData;
+        // PNG icon
+        return URL.createObjectURL(new Blob([ reader.buffer ]));
+
+    } else if(true) {
+
+        reader.pointer = 0;
+
+        console.log(reader.buffer);
+
+        // ICO icon
+
+    } else {
+
+        throw new Error('Unknown icon format.');
+
+    }
 
 }
 
@@ -353,7 +377,7 @@ const viewer: Viewer = {
 
             if(!iconData) return null;
 
-            return URL.createObjectURL(new Blob([ iconData ]));
+            return iconData;
 
         }
 

@@ -354,17 +354,50 @@ class DataReader {
 
     }
 
-
     /**
-     * Returns false is magic doesn't match.  
+     * Throws an error if magic doesn't match.  
      */
-    magic(...args: Parameters<DataReader['assertMagic']>): boolean {
-        try {
-            this.assertMagic(...args);
-            return true;
-        } catch(err) {
-            return false;
+    magic(magic: string): boolean;
+    magic(magic: ArrayBuffer): boolean;
+    magic(magic: Array<number>): boolean;
+    magic(magic: number, type: SmallNumberType): boolean;
+    magic(magic: bigint, type: BigNumberType): boolean;
+    magic(magic: string | ArrayBuffer | Array<number> | number | bigint, type?: SmallNumberType | BigNumberType): boolean {
+
+        if(typeof magic == 'string') {
+
+            const string = this.readString(magic.length, 'ascii');
+
+            return string == magic;
+
+        } else if(magic instanceof ArrayBuffer) {
+
+            const magicBuffer = new Uint8Array(magic);
+
+            const buffer = new Uint8Array(this.readBuffer(magicBuffer.length));
+
+            return magicBuffer.every((v, i) => v == buffer[i])
+
+        } else if(Array.isArray(magic)) {
+
+            const buffer = new Uint8Array(this.readBuffer(magic.length));
+
+            return magic.every((v, i) => v == buffer[i])
+
+        } else if(typeof magic == 'number' || typeof magic == 'bigint') {
+
+            if(type === undefined) throw new Error('DataReader.magic: Must provide type for number.');
+
+            const value = typeof magic == 'number' ? this.readNumber(type as SmallNumberType) : this.readBigNumber(type as BigNumberType);
+
+            return value == magic;
+
+        } else {
+
+            throw new Error('DataReader.magic: Invalid arguments.');
+
         }
+
     }
 
 
