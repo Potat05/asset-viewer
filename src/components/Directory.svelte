@@ -24,7 +24,7 @@
 
         await Promise.all(list.map(entry => {
             return findViewers(entry);
-        }))
+        }));
 
         entries = Object.values(await dir.list())
             .sort((a, b) => {
