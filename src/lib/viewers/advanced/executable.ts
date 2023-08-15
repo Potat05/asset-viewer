@@ -10,7 +10,7 @@
 
 
 
-import { BlobReader } from "$lib/BlobReader";
+import { DataReader } from "$lib/DataReader";
 import { fsEntry } from "$lib/FileSystem";
 import { ImageUtils } from "$lib/ImageUtils";
 import { TypeUtils } from "$lib/TypeUtils";
@@ -20,62 +20,10 @@ import { ExeUtils } from "$lib/executable/utils";
 
 
 
-async function extractIcon(file: Blob): Promise<string | undefined> {
+async function loadIcon(data: ArrayBuffer): Promise<string | undefined> {
 
-    const reader = new ExecutableReader(file);
+    const reader = new DataReader(data);
 
-    const [ dosHeader, fileHeader, optionalHeader, sectionHeaders ] = await ExeUtils.getHeaders(reader);
-
-
-
-    const resourceSectionHeader = sectionHeaders.find(section => section.name == '.rsrc\x00\x00\x00');
-    if(!resourceSectionHeader) return;
-
-    await reader.load(resourceSectionHeader.sizeOfRawData, resourceSectionHeader.pointerToRawData);
-    const resources = reader.readResources();
-
-    const iconResource = resources.entries.find(resource => resource.type == 0x00000003);
-    if(!iconResource || !iconResource.isDir) return;
-
-    const icons = (await Promise.all(iconResource.dir.entries.map(async entry => {
-
-        if(!entry || !entry.isDir) {
-            return null;
-        }
-
-        const entryData = entry.dir.entries[0];
-
-        if(!entryData || entryData.isDir) {
-            return null;
-        }
-
-        await reader.load(16, resourceSectionHeader.pointerToRawData + entryData.offset)
-
-        const virtualOffsetToData = reader.readNumber('Uint32');
-
-        return {
-            offset: virtualOffsetToData - resourceSectionHeader.virtualAddress + resourceSectionHeader.pointerToRawData,
-            size: reader.readNumber('Uint32'),
-            codePage: reader.readNumber('Uint32'),
-            reserved: reader.readNumber('Uint32')
-        }
-
-    }))).filter(TypeUtils.isNotNull);
-
-    // TODO: Select from the 0th icon group.
-    const icon = icons.reduce((biggest, icon) => {
-        if(biggest == undefined) return icon;
-        if(icon.size > biggest.size) {
-            return icon;
-        } else {
-            return biggest;
-        }
-    });
-
-    // Reading the actual image data.
-    await reader.load(icon.size, icon.offset);
-    
-    // Image data may be either .ico or png
     if(reader.magic([
         0x89,
         0x50, 0x4E, 0x47,
@@ -123,6 +71,67 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
 
     }
 
+}
+
+
+
+async function extractIcon(file: Blob): Promise<string | undefined> {
+
+    const reader = new ExecutableReader(file);
+
+    const [ dosHeader, fileHeader, optionalHeader, sectionHeaders ] = await ExeUtils.getHeaders(reader);
+
+    const mapper = new ExeUtils.VirtualMemeorySpace(sectionHeaders);
+
+
+
+    const resourceSectionHeader = ExeUtils.getSectionHeader(sectionHeaders, '.rsrc');
+    if(!resourceSectionHeader) return;
+
+    await reader.load(resourceSectionHeader.sizeOfRawData, resourceSectionHeader.pointerToRawData);
+    const resources = reader.readResources();
+
+    const iconResource = resources.entries.find(resource => resource.type == 0x00000003);
+    if(!iconResource || !iconResource.isDir) return;
+
+    const icons = (await Promise.all(iconResource.dir.entries.map(async entry => {
+
+        if(!entry || !entry.isDir) {
+            return null;
+        }
+
+        const entryData = entry.dir.entries[0];
+
+        if(!entryData || entryData.isDir) {
+            return null;
+        }
+
+        await reader.load(16, resourceSectionHeader.pointerToRawData + entryData.offset)
+
+        return {
+            offset: mapper.toRaw(reader.readNumber('Uint32')),
+            size: reader.readNumber('Uint32'),
+            codePage: reader.readNumber('Uint32'),
+            reserved: reader.readNumber('Uint32')
+        }
+
+    }))).filter(TypeUtils.isNotNull);
+
+    // TODO: Select from the 0th icon group.
+    const icon = icons.reduce((biggest, icon) => {
+        if(biggest == undefined) return icon;
+        if(icon.size > biggest.size) {
+            return icon;
+        } else {
+            return biggest;
+        }
+    });
+
+    // Reading the actual image data.
+    await reader.load(icon.size, icon.offset);
+
+    return await loadIcon(reader.readBuffer(reader.dataLeft));
+    
 }
 
 
