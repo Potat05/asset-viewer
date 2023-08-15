@@ -15,7 +15,7 @@ import { fsEntry } from "$lib/FileSystem";
 import { ImageUtils } from "$lib/ImageUtils";
 import { TypeUtils } from "$lib/TypeUtils";
 import type { Viewer } from "$lib/Viewer";
-import { ExecutableReader } from "$lib/executable/reader";
+import { ExecutableReader, type DirResource, type DirEntry } from "$lib/executable/reader";
 import { ExeUtils } from "$lib/executable/utils";
 
 
@@ -91,44 +91,96 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
     await reader.load(resourceSectionHeader.sizeOfRawData, resourceSectionHeader.pointerToRawData);
     const resources = reader.readResources();
 
-    const iconResource = resources.entries.find(resource => resource.type == 0x00000003);
-    if(!iconResource || !iconResource.isDir) return;
 
-    const icons = (await Promise.all(iconResource.dir.entries.map(async entry => {
 
+    function readOffsetSize(entry: DirEntry) {
         if(!entry || !entry.isDir) {
-            return null;
+            throw new Error('readOffsetSize entry is not dir.')
         }
-
+        
         const entryData = entry.dir.entries[0];
-
         if(!entryData || entryData.isDir) {
-            return null;
+            throw new Error('readOffsetSize data entry is invalid.');
         }
 
-        await reader.load(16, resourceSectionHeader.pointerToRawData + entryData.offset)
+        reader.pointer = entryData.offset;
 
         return {
-            offset: mapper.toRaw(reader.readNumber('Uint32')),
+            id: entry.type,
+            offset: reader.readNumber('Uint32'),
             size: reader.readNumber('Uint32'),
             codePage: reader.readNumber('Uint32'),
             reserved: reader.readNumber('Uint32')
         }
+    }
 
-    }))).filter(TypeUtils.isNotNull);
 
-    // TODO: Select from the 0th icon group.
-    const icon = icons.reduce((biggest, icon) => {
-        if(biggest == undefined) return icon;
-        if(icon.size > biggest.size) {
+
+    const iconResource = resources.entries.find(resource => resource.type == 0x00000003);
+    if(!iconResource || !iconResource.isDir) return;
+
+    const icons = iconResource.dir.entries.map(readOffsetSize);
+
+
+
+    const groupResource = resources.entries.find(resource => resource.type == 0x0000000E);
+    if(!groupResource || !groupResource.isDir) return;
+
+    const groups = await Promise.all(groupResource.dir.entries.map(readOffsetSize)
+        .map(async offsetSize => {
+
+            await reader.load(offsetSize.size, mapper.toRaw(offsetSize.offset));
+
+            const reserved = reader.readBuffer(2);
+            const type = reader.readNumber('Uint16');
+            const count = reader.readNumber('Uint16');
+
+            function transformSize(size: number): number {
+                return size == 0x00 ? 0xFF : size;
+            }
+
+            let entries = [];
+
+            for(let i = 0; i < count; i++) {
+
+                entries.push({
+                    width: transformSize(reader.readNumber('Uint8')),
+                    height: transformSize(reader.readNumber('Uint8')),
+                    colorCount: reader.readNumber('Uint8'),
+                    reserved: reader.readBuffer(1),
+                    planes: reader.readNumber('Uint16'),
+                    bitCount: reader.readNumber('Uint16'),
+                    bytesInRes: reader.readNumber('Uint32'),
+                    id: reader.readNumber('Uint16')
+                });
+
+            }
+
+            return { reserved, type, count, entries };
+
+        }));
+
+
+
+    const bestIcon = groups[0].entries.reduce((best, icon) => {
+        if(best === undefined) return icon;
+        if(icon.width > best.width && icon.height > best.height) {
             return icon;
         } else {
-            return biggest;
+            return best;
         }
     });
 
+
+
+    // TODO: Select from the 0th icon group.
+    const icon = icons.find(icon => icon.id == bestIcon.id);
+    if(!icon) {
+        throw new Error('Catastrophic error, Icon ID was not found.');
+    }
+
     // Reading the actual image data.
-    await reader.load(icon.size, icon.offset);
+    await reader.load(icon.size, mapper.toRaw(icon.offset));
 
     return await loadIcon(reader.readBuffer(reader.dataLeft));
     

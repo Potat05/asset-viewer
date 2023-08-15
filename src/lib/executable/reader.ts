@@ -170,6 +170,17 @@ export interface SectionHeader {
 
 
 
+export type DirEntry = {
+    isStr: boolean;
+    type: number;
+    isDir: false;
+    offset: number;
+} | {
+    isStr: boolean;
+    type: number;
+    isDir: true;
+    dir: DirResource;
+}
 
 export interface DirResource {
     characteristics: number;
@@ -178,19 +189,7 @@ export interface DirResource {
     minorVersion: number;
     numberOfNamedEntries: number;
     numberOfIdEntries: number;
-    entries: (
-        {
-            isStr: boolean;
-            type: number;
-            isDir: false;
-            offset: number;
-        } | {
-            isStr: boolean;
-            type: number;
-            isDir: true;
-            dir: DirResource;
-        }
-    )[];
+    entries: DirEntry[];
 }
 
 
