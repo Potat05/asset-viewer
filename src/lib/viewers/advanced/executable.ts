@@ -133,39 +133,41 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
     const groupResource = resources.entries.find(resource => resource.type == 0x0000000E);
     if(!groupResource || !groupResource.isDir) return;
 
-    const groups = await Promise.all(groupResource.dir.entries.map(readOffsetSize)
-        .map(async offsetSize => {
+    const groups = await Promise.all(
+        groupResource.dir.entries.map(readOffsetSize)
+            .map(async offsetSize => {
 
-            await reader.load(offsetSize.size, mapper.toRaw(offsetSize.offset));
+                await reader.load(offsetSize.size, mapper.toRaw(offsetSize.offset));
 
-            const reserved = reader.readBuffer(2);
-            const type = reader.readNumber('Uint16');
-            const count = reader.readNumber('Uint16');
+                const reserved = reader.readBuffer(2);
+                const type = reader.readNumber('Uint16');
+                const count = reader.readNumber('Uint16');
 
-            function transformSize(size: number): number {
-                return size == 0x00 ? 0xFF : size;
-            }
+                function transformSize(size: number): number {
+                    return size == 0x00 ? 0xFF : size;
+                }
 
-            let entries = [];
+                let entries = [];
 
-            for(let i = 0; i < count; i++) {
+                for(let i = 0; i < count; i++) {
 
-                entries.push({
-                    width: transformSize(reader.readNumber('Uint8')),
-                    height: transformSize(reader.readNumber('Uint8')),
-                    colorCount: reader.readNumber('Uint8'),
-                    reserved: reader.readBuffer(1),
-                    planes: reader.readNumber('Uint16'),
-                    bitCount: reader.readNumber('Uint16'),
-                    bytesInRes: reader.readNumber('Uint32'),
-                    id: reader.readNumber('Uint16')
-                });
+                    entries.push({
+                        width: transformSize(reader.readNumber('Uint8')),
+                        height: transformSize(reader.readNumber('Uint8')),
+                        colorCount: reader.readNumber('Uint8'),
+                        reserved: reader.readBuffer(1),
+                        planes: reader.readNumber('Uint16'),
+                        bitCount: reader.readNumber('Uint16'),
+                        bytesInRes: reader.readNumber('Uint32'),
+                        id: reader.readNumber('Uint16')
+                    });
 
-            }
+                }
 
-            return { reserved, type, count, entries };
+                return { reserved, type, count, entries };
 
-        }));
+            })
+    );
 
 
 
