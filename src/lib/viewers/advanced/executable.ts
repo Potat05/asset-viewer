@@ -85,10 +85,17 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
 
 
 
-    const resourceSectionHeader = ExeUtils.getSectionHeader(sectionHeaders, '.rsrc');
-    if(!resourceSectionHeader) return;
+    // const resourceSectionHeader = ExeUtils.getSectionHeader(sectionHeaders, '.rsrc');
+    // if(!resourceSectionHeader) return;
 
-    await reader.load(resourceSectionHeader.sizeOfRawData, resourceSectionHeader.pointerToRawData);
+    // await reader.load(resourceSectionHeader.sizeOfRawData, resourceSectionHeader.pointerToRawData);
+    // const resources = reader.readResources();
+
+    if(optionalHeader.resourceDirectory.offset == 0 || optionalHeader.resourceDirectory.size == 0) {
+        return;
+    }
+
+    await reader.load(optionalHeader.resourceDirectory.size, mapper.toRaw(optionalHeader.resourceDirectory.offset));
     const resources = reader.readResources();
 
 
