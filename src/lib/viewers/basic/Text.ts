@@ -20,6 +20,9 @@ const viewer: Viewer = {
             throw new Error('Tried to create text viewer with directory.');
         }
 
+    },
+    getIcon: async () => {
+        return "/bootstrap-icons/file-earmark-text.svg";
     }
 };
 
