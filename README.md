@@ -10,11 +10,19 @@ Drag and drop a directory onto the window.
 2. Install dependencies `npm install`
 3. Run development server `npm run dev -- --start`
 
-## TODO
+## Viewers
 
-* Github pages
-* Dynamically load viewers
-    * Instead of having every viewer loaded at once, have a list of file extensions and their viewers they go with then when a file is detected with one of those exensions load that viewer.
+* Basic
+    * Text
+    * Image
+    * Video
+    * Code
+* Advanced
+    * Executable (Icon)
+* Games
+    * Ren'Py game engine
+        * Archive
+        * Compiled code
 
 ## TODO Viewers
 
@@ -31,6 +39,12 @@ Drag and drop a directory onto the window.
     * (I don't know anything about Unity so fill this out later.)
 * Executable (PE)
     * x86 disassembler with [iced-x86](https://www.npmjs.com/package/iced-x86)
+
+## TODO
+
+* Github pages
+* Dynamically load viewers
+    * Instead of having every viewer loaded at once, have a list of file extensions and their viewers they go with then when a file is detected with one of those exensions load that viewer.
 
 ## Using These Things
 
