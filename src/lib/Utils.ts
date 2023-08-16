@@ -35,7 +35,9 @@ export namespace Utils {
             const char = reader.readNumber('Uint8');
 
             if(spaceChars.includes(char)) {
-                wordLengths.push(wordLength);
+                if(wordLength > 0) {
+                    wordLengths.push(wordLength);
+                }
                 wordLength = 0;
             } else {
                 wordLength++;
