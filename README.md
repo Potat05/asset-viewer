@@ -1,38 +1,38 @@
-# create-svelte
+# asset-viewer
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+View and extract a wide variety of file types inside the browser.
 
-## Creating a project
+Drag and drop a directory onto the window.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Develop
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+1. Clone this repository
+2. Install dependencies `npm install`
+3. Run development server `npm run dev -- --start`
 
-# create a new project in my-app
-npm create svelte@latest my-app
-```
+## TODO
 
-## Developing
+* Github pages
+* Dynamically load viewers
+    * Instead of having every viewer loaded at once, have a list of file extensions and their viewers they go with then when a file is detected with one of those exensions load that viewer.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## TODO Viewers
 
-```bash
-npm run dev
+* Zip
+* Minecraft
+    * NBT viewer
+    * World viewer
+        * With resource pack
+* Source engine
+    * Map viewer
+    * Texture viewer
+    * Model viewer
+* Unity engine
+    * (I don't know anything about Unity so fill this out later.)
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+## Using These Things
 
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+[Svelte](https://svelte.dev/) as the framework.  
+[Pako](https://www.npmjs.com/package/pako) the [zlib](https://www.zlib.net/) port for deflate compression.  
+[Bootstrap](https://icons.getbootstrap.com/) for icons.  
+[highlight.js](https://highlightjs.org/) for code highlighting.  
