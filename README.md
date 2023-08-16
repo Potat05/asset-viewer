@@ -29,6 +29,8 @@ Drag and drop a directory onto the window.
     * Model viewer
 * Unity engine
     * (I don't know anything about Unity so fill this out later.)
+* Executable (PE)
+    * x86 disassembler with [iced-x86](https://www.npmjs.com/package/iced-x86)
 
 ## Using These Things
 
