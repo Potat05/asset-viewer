@@ -41,4 +41,4 @@ Drag and drop a directory onto the window.
 
 [PE-bear](https://github.com/hasherezade/pe-bear/), Easy to use UI to explore executable (PE) files.  
 [Kaitai Struct](http://formats.kaitai.io), A lot of file format specifications with block diagrams.  
-[CPython](hhttps://github.com/python/cpython), Has python implementations of various things.  
+[CPython](hhttps://github.com/python/cpython), Has Python implementations of various things.  
