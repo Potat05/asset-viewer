@@ -20,6 +20,8 @@ Drag and drop a directory onto the window.
 * Advanced
     * Executable (Icon)
 * Games
+    * Minecraft
+        * NBT viewer
     * Ren'Py game engine
         * Archive
         * Compiled code
@@ -28,7 +30,6 @@ Drag and drop a directory onto the window.
 
 * Zip
 * Minecraft
-    * NBT viewer
     * World viewer
         * With resource pack
 * Source engine

@@ -128,3 +128,10 @@ createNewViewer(RenPyArchiveViewer);
 
 import RenPyScriptViewer from "./viewers/renpy/script";
 createNewViewer(RenPyScriptViewer);
+
+
+
+import MinecraftNBTViewer from "./viewers/minecraft/nbt";
+createNewViewer(MinecraftNBTViewer);
+
+
