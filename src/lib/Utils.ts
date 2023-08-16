@@ -11,7 +11,7 @@ export namespace Utils {
 
 
     const spaceChars = ' \n\t\\=+-/*:[](){}'.split('').map(char => char.charCodeAt(0));
-    const isBinaryMaxWordLength = 12;
+    const isBinaryMaxWordLength = 8;
 
     /**
      * Either data is text or not.  
