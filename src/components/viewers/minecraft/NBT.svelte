@@ -14,8 +14,6 @@
 
         const nbt = convertNBT(pako.ungzip(await entry.buffer()));
 
-        console.log(simpleNBTObj(nbt));
-
         new NbtValue({ target: container, props: { entry: nbt } });
 
     });

@@ -26,6 +26,8 @@
 
         console.log(chunk);
 
+        console.log(chunk.getBlock(0, 0, 0));
+
     });
 
 </script>

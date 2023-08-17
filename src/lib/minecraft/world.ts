@@ -2,17 +2,117 @@ import { DataReader } from "$lib/DataReader";
 import { fsUtils, type fsDirectory, type fsFile, fsEntry } from "$lib/FileSystem";
 import pako from "pako";
 import { convertNBT, simpleNBTObj } from "./nbt";
+import * as zod from "zod";
+
+
+
+const BlockState = zod.object({
+    Name: zod.string(),
+    Properties: zod.optional(zod.record(zod.string(), zod.any()))
+});
+
+
+
+const BLOCK_AIR: zod.TypeOf<typeof BlockState> = {
+    Name: 'minecraft:air'
+}
+
+
+
+// TODO - Fill more of this out.
+const ChunkData = zod.object({
+    DataVersion: zod.number().int().min(0),
+    xPos: zod.number().int(),
+    yPos: zod.number().int(),
+    zPos: zod.number().int(),
+    Status: zod.literal('full').or(zod.string()),
+    LastUpdate: zod.bigint().min(0n),
+    sections: zod.array(zod.object({
+        Y: zod.number().int(),
+        block_states: zod.object({
+            palette: zod.array(BlockState),
+            data: zod.optional(zod.instanceof(BigInt64Array))
+        })
+    })),
+    block_entities: zod.array(zod.object({
+        x: zod.number().int(),
+        y: zod.number().int(),
+        z: zod.number().int(),
+        id: zod.string()
+    }))
+});
 
 
 
 
 
 export class Chunk {
-    data: unknown;
+    data: zod.TypeOf<typeof ChunkData>;
+
+    sections: (zod.TypeOf<typeof BlockState>[] | null)[];
 
     constructor(data: unknown) {
-        this.data = data;
+        this.data = ChunkData.parse(data);
+        this.sections = new Array(this.data.sections.length).fill(null);
     }
+
+    deserializeSection(ind: number) {
+        if(this.sections[ind] != null) return;
+
+        const section = this.data.sections[ind].block_states;
+        const data = section.data;
+
+        if(section.palette.length == 0) {
+            this.sections[ind] = new Array(4096).fill(BLOCK_AIR);
+            return;
+        }
+        if(section.palette.length == 1 || data == undefined) {
+            this.sections[ind] = new Array(4096).fill(section.palette[0]);
+            return;
+        }
+
+        const numBits = Math.ceil(Math.log2(section.palette.length));
+        const mask = BigInt((1 << numBits) - 1);
+
+        const deserialized = new Array(4096);
+
+        let dataIndex = 0;
+        let bitIndex = 0;
+        for(let b = 0; b < 4096; b++) {
+
+            deserialized[b] = section.palette[Number((data[dataIndex] >> BigInt(bitIndex)) & mask)];
+
+            bitIndex += numBits;
+
+            if(bitIndex >= 64) {
+                bitIndex = 0;
+                dataIndex++;
+            }
+
+        }
+
+        this.sections[ind] = deserialized;
+
+    }
+
+    getBlock(bx: number, by: number, bz: number): zod.TypeOf<typeof BlockState> {
+
+        const ind = this.data.sections.findIndex(section => section.Y >= by && section.Y < by + 16)
+
+        this.deserializeSection(ind);
+
+        const section = this.sections[ind];
+
+        if(section == null) {
+            throw new Error('Deserialization failed.');
+        }
+
+        const blockIndex = (by % 0xF)*0xFF + bz*0x0F + bx;
+
+        return section[blockIndex];
+
+    }
+
 }
 
 
@@ -45,9 +145,9 @@ export class Region {
 
 
 
-    async getChunk(cx: number, cy: number): Promise<Chunk | null> {
+    async getChunk(cx: number, cz: number): Promise<Chunk | null> {
 
-        const ind = cx + cy * REGION_CHUNK_SIZE;
+        const ind = cx + cz * REGION_CHUNK_SIZE;
 
         const offset = this.offsets[ind] * REGION_CHUNK_SECTOR_SIZE;
         const length = this.lengths[ind] * REGION_CHUNK_SECTOR_SIZE;
@@ -63,8 +163,6 @@ export class Region {
         if(compressionMethod != 2) {
             throw new Error('Invalid chunk compression method.');
         }
-
-        console.log(compressedLength, compressionMethod)
 
         const nbt = simpleNBTObj(
             convertNBT(
@@ -88,9 +186,9 @@ export class World {
         this.dir = dir;
     }
 
-    async getRegion(rx: number, ry: number): Promise<Region | null> {
+    async getRegion(rx: number, rz: number): Promise<Region | null> {
 
-        const file = await fsUtils.getDeep(this.dir, `region/r.${rx}.${ry}.mca`);
+        const file = await fsUtils.getDeep(this.dir, `region/r.${rx}.${rz}.mca`);
 
         if(file == null || file.type != fsEntry.File) return null;
 
