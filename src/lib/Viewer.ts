@@ -134,4 +134,5 @@ createNewViewer(RenPyScriptViewer);
 import MinecraftNBTViewer from "./viewers/minecraft/nbt";
 createNewViewer(MinecraftNBTViewer);
 
-
+import MinecraftWorldViewer from "./viewers/minecraft/world";
+createNewViewer(MinecraftWorldViewer);

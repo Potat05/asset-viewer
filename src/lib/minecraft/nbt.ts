@@ -46,13 +46,6 @@ export function convertNBT(data: ArrayBuffer): Tag[keyof Tag] {
 
     reader.endianness = DataReader.BIG_ENDIAN;
 
-    // Data is usually compressed with GZIP
-    if(reader.readNumber('Uint16') == 0x1F8B) {
-        reader.loadData(pako.ungzip(reader.buffer));
-    }
-
-    reader.pointer = 0;
-
 
 
     const readTag = (type: number): Tag[keyof Tag] => {
@@ -121,6 +114,42 @@ export function convertNBT(data: ArrayBuffer): Tag[keyof Tag] {
     }
 
     return readTag(TAGS.Compound);
+
+}
+
+
+
+export function simpleNBTObj(nbt: Tag[keyof Tag]): unknown {
+
+    switch(nbt.tag) {
+
+        default:
+        case TAGS.End:
+            throw new Error('failed to simplify nbt object.');
+
+        case TAGS.Byte:
+        case TAGS.Short:
+        case TAGS.Int:
+        case TAGS.Long:
+        case TAGS.Float:
+        case TAGS.Double:
+            return nbt.value;
+
+        case TAGS.String:
+            return nbt.value;
+
+        case TAGS.List:
+            return nbt.value.map(simpleNBTObj);
+
+        case TAGS.Compound:
+            return Object.fromEntries(Object.entries(nbt.value).map(([ key, value ]) => [ key, simpleNBTObj(value) ]));
+
+        case TAGS.Byte_Array:
+        case TAGS.Int_Array:
+        case TAGS.Long_Array:
+            return nbt.value;
+
+    }
 
 }
 

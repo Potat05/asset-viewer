@@ -1,9 +1,10 @@
 
 <script lang="ts">
     import type { fsFile } from "$lib/FileSystem";
-    import { convertNBT } from "$lib/minecraft/nbt";
+    import { convertNBT, simpleNBTObj } from "$lib/minecraft/nbt";
     import { onMount } from "svelte";
     import NbtValue from "./NBTValue.svelte";
+    import pako from "pako";
 
     export let entry: fsFile;
     
@@ -11,7 +12,9 @@
 
     onMount(async () => {
 
-        const nbt = convertNBT(await entry.buffer());
+        const nbt = convertNBT(pako.ungzip(await entry.buffer()));
+
+        console.log(simpleNBTObj(nbt));
 
         new NbtValue({ target: container, props: { entry: nbt } });
 
