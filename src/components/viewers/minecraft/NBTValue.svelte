@@ -3,6 +3,9 @@
 
     export let entry: Tag[keyof Tag];
 
+    // TODO: Clean this up a lot, The CSS in this is absolute trash.
+    // I'm too lazy to even try to make it look good so here is just the template of it with the icons.
+
 </script>
 
 
@@ -35,6 +38,16 @@
         display: flex;
     }
 
+    .nbt-list {
+        display: flex;
+        flex-direction: column;
+        margin-left: 32px;
+    }
+
+    .nbt-list-item {
+        display: flex;
+    }
+
 </style>
 
 <div class="nbt-container">
@@ -57,6 +70,34 @@
             
                 <div class="nbt-compound-kv">
                     {key}: <svelte:self entry={value}/>
+                </div>
+
+            {/each}
+
+        </div>
+
+    {:else if entry.tag == TAGS.List}
+
+        <div class="nbt-list">
+
+            {#each entry.value as value}
+
+                <div class="nbt-list-item">
+                    <svelte:self entry={value} />
+                </div>
+
+            {/each}
+
+        </div>
+
+    {:else if entry.tag == TAGS.Byte_Array || entry.tag == TAGS.Int_Array || entry.tag == TAGS.Long_Array}
+
+        <div class="nbt-list">
+
+            {#each entry.value as value}
+
+                <div class="nbt-list-item">
+                    {value}
                 </div>
 
             {/each}

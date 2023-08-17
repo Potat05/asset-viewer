@@ -7,6 +7,7 @@ const viewer: Viewer = {
     priority: 2,
     isValid: async entry => {
         if(entry.type != fsEntry.File) return false;
+        if(!entry.name.includes('.dat')) return false;
         const blob = await entry.blob();
         if(blob.size == 0) return true;
 
