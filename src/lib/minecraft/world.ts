@@ -71,7 +71,7 @@ export class Chunk {
             return;
         }
 
-        const numBits = Math.ceil(Math.log2(section.palette.length));
+        const numBits = Math.max(Math.ceil(Math.log2(section.palette.length)), 4);
         const mask = BigInt((1 << numBits) - 1);
 
         const deserialized = new Array(4096);
