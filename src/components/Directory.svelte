@@ -1,7 +1,7 @@
 
 <script lang="ts">
     import { fsEntry, type fsDirectory, type fsFile } from "$lib/FileSystem";
-    import { findViewers, viewerIcon } from "$lib/Viewer";
+    import { findViewers, openViewer, viewerIcon } from "$lib/Viewer";
     import { onMount } from "svelte";
     import File from "./File.svelte";
 
@@ -20,6 +20,11 @@
 
 
     onMount(async () => {
+
+        if(dir.parent == null && dir.viewer == null) {
+            await findViewers(dir);
+        }
+
         const list = Object.values(await dir.list());
 
         await Promise.all(list.map(entry => {
@@ -72,13 +77,13 @@
         margin: 5px;
     }
 
-    .icon-container {
+    .icon-container, .create-viewer-icon-container {
         height: 20px;
         margin: 0;
         padding: 4px;
     }
 
-    .icon-container > * {
+    .icon-container > *, .create-viewer-icon-container > * {
         height: 100%;
     }
 
@@ -127,6 +132,19 @@
         {/await}
 
         <div class="name">{dir.name}</div>
+
+        {#if dir?.viewer?.createViewer}
+
+            <div class="create-viewer-icon-container" on:click={(ev) => {
+                ev.stopPropagation();
+                openViewer(dir);
+            }}>
+
+                <img src="/bootstrap-icons/eye.svg" alt="Open Viewer Icon">
+
+            </div>
+
+        {/if}
 
     </div>
 
