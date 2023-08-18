@@ -29,10 +29,10 @@ const ChunkData = zod.object({
     LastUpdate: zod.bigint().min(0n),
     sections: zod.array(zod.object({
         Y: zod.number().int(),
-        block_states: zod.object({
+        block_states: zod.optional(zod.object({
             palette: zod.array(BlockState),
             data: zod.optional(zod.instanceof(BigInt64Array))
-        })
+        }))
     })),
     block_entities: zod.array(zod.object({
         x: zod.number().int(),
@@ -49,67 +49,140 @@ const ChunkData = zod.object({
 export class Chunk {
     data: zod.TypeOf<typeof ChunkData>;
 
-    sections: (zod.TypeOf<typeof BlockState>[] | null)[];
+    sections: ({
+        y: number;
+    } & ({
+        type: 'unset'
+    } | {
+        type: 'empty';
+    } | {
+        type: 'fill';
+        fill: zod.TypeOf<typeof BlockState>;
+    } | {
+        type: 'blocks';
+        blocks: zod.TypeOf<typeof BlockState>[];
+    }))[];
 
     constructor(data: unknown) {
+        console.log(data);
         this.data = ChunkData.parse(data);
-        this.sections = new Array(this.data.sections.length).fill(null);
+        this.sections = new Array(this.data.sections.length);
+        for(let i = 0; i < this.data.sections.length; i++) {
+            this.sections[i] = {
+                y: this.data.sections[i].Y * 16,
+                type: 'unset'
+            }
+        }
     }
 
     deserializeSection(ind: number) {
-        if(this.sections[ind] != null) return;
+        if(this.sections[ind].type != 'unset') return;
 
         const section = this.data.sections[ind].block_states;
+        if(section == undefined) {
+            this.sections[ind] = {
+                y: this.sections[ind].y,
+                type: 'empty'
+            }
+            return;
+        }
         const data = section.data;
 
         if(section.palette.length == 0) {
-            this.sections[ind] = new Array(4096).fill(BLOCK_AIR);
+            this.sections[ind] = {
+                y: this.sections[ind].y,
+                type: 'fill',
+                fill: BLOCK_AIR
+            }
             return;
         }
         if(section.palette.length == 1 || data == undefined) {
-            this.sections[ind] = new Array(4096).fill(section.palette[0]);
+            this.sections[ind] = {
+                y: this.sections[ind].y,
+                type: 'fill',
+                fill: section.palette[0]
+            }
             return;
         }
 
         const numBits = Math.max(Math.ceil(Math.log2(section.palette.length)), 4);
         const mask = BigInt((1 << numBits) - 1);
 
+        console.log(data);
+
         const deserialized = new Array(4096);
 
         let dataIndex = 0;
-        let bitIndex = 0;
+        let bitIndex = 64 - numBits;
         for(let b = 0; b < 4096; b++) {
 
+            // TODO - For some reason the nibble positions are swapped.
             deserialized[b] = section.palette[Number((data[dataIndex] >> BigInt(bitIndex)) & mask)];
 
-            bitIndex += numBits;
+            bitIndex -= numBits;
 
-            if(bitIndex >= 64) {
-                bitIndex = 0;
+            if(bitIndex < 0) {
+                bitIndex = 64 - numBits;
                 dataIndex++;
             }
 
         }
 
-        this.sections[ind] = deserialized;
+        this.sections[ind] = {
+            y: this.sections[ind].y,
+            type: 'blocks',
+            blocks: deserialized
+        }
+        console.log(deserialized);
 
     }
 
-    getBlock(bx: number, by: number, bz: number): zod.TypeOf<typeof BlockState> {
+    forEachBlock(callbackfn: (bx: number, by: number, bz: number, block: zod.TypeOf<typeof BlockState>) => void) {
 
-        const ind = this.data.sections.findIndex(section => section.Y >= by && section.Y < by + 16)
+        for(let i = 0; i < this.sections.length; i++) {
 
-        this.deserializeSection(ind);
+            if(this.sections[i].type == 'unset') {
+                this.deserializeSection(i);
+            }
 
-        const section = this.sections[ind];
+            const section = this.sections[i];
 
-        if(section == null) {
-            throw new Error('Deserialization failed.');
+            switch(section.type) {
+                case 'unset':
+                    throw new Error('Deserialization failed.');
+                case 'empty': break;
+                case 'fill': {
+                    const block = section.fill;
+
+                    for(let sx = 0; sx < 16; sx++) {
+                        for(let sy = 0; sy < 16; sy++) {
+                            for(let sz = 0; sz < 16; sz++) {
+                                callbackfn(sx, section.y + sy, sz, block);
+                            }
+                        }
+                    }
+                    break; }
+                case 'blocks': {
+                    for(let sx = 0; sx < 16; sx++) {
+                        for(let sy = 0; sy < 16; sy++) {
+                            for(let sz = 0; sz < 16; sz++) {
+                                // const blockIndex = sy*256 + sz*16 + sx;
+                                const blockIndex = (sy << 8) | (sz << 4) | sx;
+                                
+                                const block = section.blocks[blockIndex];
+                                
+                                if(block.Name != 'minecraft:air') {
+                                    console.log(blockIndex);
+                                }
+
+                                callbackfn(sx, section.y + sy, sz, block);
+                            }
+                        }
+                    }
+                    break; }
+            }
+
         }
-
-        const blockIndex = (by % 0xF)*0xFF + bz*0x0F + bx;
-
-        return section[blockIndex];
 
     }
 
