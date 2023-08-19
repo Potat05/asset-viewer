@@ -45,23 +45,25 @@ const ChunkData = zod.object({
 
 
 
+type Section = {
+    y: number;
+} & ({
+    type: 'unset'
+} | {
+    type: 'empty';
+} | {
+    type: 'fill';
+    fill: zod.TypeOf<typeof BlockState>;
+} | {
+    type: 'blocks';
+    blocks: zod.TypeOf<typeof BlockState>[];
+});
+
 
 export class Chunk {
     data: zod.TypeOf<typeof ChunkData>;
 
-    sections: ({
-        y: number;
-    } & ({
-        type: 'unset'
-    } | {
-        type: 'empty';
-    } | {
-        type: 'fill';
-        fill: zod.TypeOf<typeof BlockState>;
-    } | {
-        type: 'blocks';
-        blocks: zod.TypeOf<typeof BlockState>[];
-    }))[];
+    sections: Section[];
 
     constructor(data: unknown) {
         this.data = ChunkData.parse(data);
@@ -136,19 +138,52 @@ export class Chunk {
 
     }
 
+    getSection(ind: number): Section | null {
+        if(this.sections[ind] == undefined) return null;
+
+        if(this.sections[ind].type == 'unset') {
+            this.deserializeSection(ind);
+        }
+
+        return this.sections[ind];
+    }
+
     static getBlockSectionIndex(x: number, y: number, z: number): number {
         return ((y & 0xF) << 8) | ((z & 0xF) << 4) | (x & 0xF);
+    }
+
+    getBlock(bx: number, by: number, bz: number): zod.TypeOf<typeof BlockState> {
+
+        const sectionIndex = this.sections.findIndex(section => by >= section.y && by < section.y + 16);
+        const section = this.getSection(sectionIndex);
+
+        if(section == null) return BLOCK_AIR;
+
+        switch(section.type) {
+            case 'unset':
+                throw new Error('Deserialization failed.');
+            case 'empty': return BLOCK_AIR;
+            case 'fill': return section.fill;
+            case 'blocks': {
+                const blockIndex = Chunk.getBlockSectionIndex(bx, by, bz);
+                                
+                const block = section.blocks[blockIndex];
+
+                return block;
+            }
+        }
+
     }
 
     forEachBlock(callbackfn: (bx: number, by: number, bz: number, block: zod.TypeOf<typeof BlockState>) => void) {
 
         for(let i = 0; i < this.sections.length; i++) {
 
-            if(this.sections[i].type == 'unset') {
-                this.deserializeSection(i);
-            }
+            const section = this.getSection(i);
 
-            const section = this.sections[i];
+            if(section == null) {
+                throw new Error('Failed to get section.');
+            }
 
             switch(section.type) {
                 case 'unset':
@@ -157,7 +192,7 @@ export class Chunk {
                 case 'fill': {
                     const block = section.fill;
 
-                    if(block.Name == 'minecraft:air') break;
+                    if(block.Name == BLOCK_AIR.Name) break;
 
                     for(let sx = 0; sx < 16; sx++) {
                         for(let sy = 0; sy < 16; sy++) {
@@ -176,7 +211,7 @@ export class Chunk {
                                 
                                 const block = section.blocks[blockIndex];
 
-                                if(block.Name == 'minecraft:air') continue;
+                                if(block.Name == BLOCK_AIR.Name) continue;
 
                                 callbackfn(sx, section.y + sy, sz, block);
                             }

@@ -105,8 +105,8 @@
             geometries.push(cube);
         }
 
-        for(let cx = 0; cx < 4; cx++) {
-            for(let cz = 0; cz < 4; cz++) {
+        for(let cx = 0; cx < 8; cx++) {
+            for(let cz = 0; cz < 8; cz++) {
 
                 const chunk = await region.getChunk(cx, cz);
 
@@ -115,7 +115,26 @@
                 if(chunk == null) continue;
 
                 chunk.forEachBlock((bx, by, bz, block) => {
-                    placeBlock(bx + cx*16, by, bz + cz*16);
+
+                    if(bx > 0 && by > -64 && bz > 0 && bx < 15 && by < 319 && bz < 15) {
+
+                        if(
+                            chunk.getBlock(bx - 1, by, bz).Name == 'minecraft:air' ||
+                            chunk.getBlock(bx + 1, by, bz).Name == 'minecraft:air' ||
+                            chunk.getBlock(bx, by - 1, bz).Name == 'minecraft:air' ||
+                            chunk.getBlock(bx, by + 1, bz).Name == 'minecraft:air' ||
+                            chunk.getBlock(bx, by, bz - 1).Name == 'minecraft:air' ||
+                            chunk.getBlock(bx, by, bz + 1).Name == 'minecraft:air'
+                        ) {
+                            placeBlock(bx + cx*16, by, bz + cz*16);
+                        }
+
+                    } else {
+                        placeBlock(bx + cx*16, by, bz + cz*16);
+                    }
+
+
+
                 });
 
             }    
