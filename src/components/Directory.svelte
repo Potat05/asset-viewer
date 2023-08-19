@@ -19,10 +19,13 @@
 
 
 
+    let rerender = 0;
+
     onMount(async () => {
 
-        if(dir.parent == null && dir.viewer == null) {
+        if(dir.parent == null) {
             await findViewers(dir);
+            rerender++;
         }
 
         const list = Object.values(await dir.list());
@@ -91,82 +94,86 @@
 
 
 
-<div class="container">
-    
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <div
-        class="title"
-        on:click={() => { expanded = !expanded }}
-    >
+{#key rerender}
+
+    <div class="container">
         
-        <!-- I am so sorry for this. -->
-        {#await viewerIcon(dir) then icon}
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <div
+            class="title"
+            on:click={() => { expanded = !expanded }}
+        >
+            
+            <!-- I am so sorry for this. -->
+            {#await viewerIcon(dir) then icon}
 
-            <div class="icon-container">
+                <div class="icon-container">
 
-                {#if icon == null}
+                    {#if icon == null}
 
-                    {#if !isArchive}
-                        {#if !expanded}
-                            <img src="/bootstrap-icons/folder-fill.svg" alt="Directory Collapsed Icon">
+                        {#if !isArchive}
+                            {#if !expanded}
+                                <img src="/bootstrap-icons/folder-fill.svg" alt="Directory Collapsed Icon">
+                            {:else}
+                                <img src="/bootstrap-icons/folder.svg" alt="Directory Icon">
+                            {/if}
                         {:else}
-                            <img src="/bootstrap-icons/folder.svg" alt="Directory Icon">
+                            {#if !expanded}
+                                <img src="/bootstrap-icons/archive-fill.svg" alt="Directory Collapsed Archive Icon">
+                            {:else}
+                                <img src="/bootstrap-icons/archive.svg" alt="Directory Archive Icon">
+                            {/if}
                         {/if}
+
                     {:else}
-                        {#if !expanded}
-                            <img src="/bootstrap-icons/archive-fill.svg" alt="Directory Collapsed Archive Icon">
-                        {:else}
-                            <img src="/bootstrap-icons/archive.svg" alt="Directory Archive Icon">
-                        {/if}
+
+                        <img src={icon} alt="Directory Icon"/>
+
                     {/if}
 
-                {:else}
+                </div>
+                
+            {/await}
 
-                    <img src={icon} alt="Directory Icon"/>
+            <div class="name">{dir.name}</div>
 
-                {/if}
+            {#if dir?.viewer?.createViewer}
 
-            </div>
+                <div class="create-viewer-icon-container" on:click={(ev) => {
+                    ev.stopPropagation();
+                    openViewer(dir);
+                }}>
+
+                    <img src="/bootstrap-icons/eye.svg" alt="Open Viewer Icon">
+
+                </div>
+
+            {/if}
+
+        </div>
+
+        {#if entries && displayed}
+
+            <div
+                class="dir-entries"
+                class:hidden={!expanded}
+            >
             
-        {/await}
-
-        <div class="name">{dir.name}</div>
-
-        {#if dir?.viewer?.createViewer}
-
-            <div class="create-viewer-icon-container" on:click={(ev) => {
-                ev.stopPropagation();
-                openViewer(dir);
-            }}>
-
-                <img src="/bootstrap-icons/eye.svg" alt="Open Viewer Icon">
-
+                {#each entries as entry}
+        
+                    {#if entry.type == fsEntry.File}
+                        <File file={entry} />
+                    {:else if entry.type == fsEntry.Directory}
+                        <svelte:self dir={entry} />
+                    {/if}
+        
+                {/each}
+            
             </div>
 
         {/if}
 
     </div>
 
-    {#if entries && displayed}
-
-        <div
-            class="dir-entries"
-            class:hidden={!expanded}
-        >
-        
-            {#each entries as entry}
-    
-                {#if entry.type == fsEntry.File}
-                    <File file={entry} />
-                {:else if entry.type == fsEntry.Directory}
-                    <svelte:self dir={entry} />
-                {/if}
-    
-            {/each}
-        
-        </div>
-
-    {/if}
-
-</div>
+{/key}

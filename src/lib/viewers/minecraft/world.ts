@@ -20,7 +20,24 @@ const viewer: Viewer = {
             throw new Error('Tried to create world viewer with file.');
         }
 
-    }
+    },
+    getIcon: async (entry) => {
+        
+        if(entry.type == fsEntry.Directory) {
+
+            const icon = await entry.get('icon.png');
+
+            if(icon == null || icon.type == fsEntry.Directory) {
+                return null;
+            }
+
+            return URL.createObjectURL(await icon.blob());
+
+        }
+
+        return null;
+
+    },
 };
 
 export default viewer;
