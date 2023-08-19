@@ -5,6 +5,7 @@
     import { World } from "$lib/minecraft/world";
     import * as THREE from "three";
     import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+    import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils";
 
     export let entry: fsDirectory;
 
@@ -12,7 +13,7 @@
 
     let canvasResizeObserver: ResizeObserver;
 
-    let renderAnimFrame: number = -1;
+    let renderInterval: number = -1;
 
     let renderer: THREE.Renderer;
     let scene: THREE.Scene;
@@ -27,8 +28,6 @@
         const region = await world.getRegion(0, 0);
         if(!region) return;
         await region.init();
-        const chunk = await region.getChunk(0, 0);
-        if(!chunk) return;
 
 
 
@@ -46,34 +45,34 @@
 
 
 
-        function createGrid(facing: 'up' | 'north' | 'east', pos: THREE.Vector3) {
+        // function createGrid(facing: 'up' | 'north' | 'east', pos: THREE.Vector3) {
 
-            const grid = new THREE.GridHelper(16, 16);
+        //     const grid = new THREE.GridHelper(16, 16);
 
-            switch(facing) {
-                case 'north': {
-                    grid.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(Math.PI / 2, 0, 0)));
-                    break; }
-                case 'east': {
-                    grid.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI / 2)));
-                    break; }
-            }
+        //     switch(facing) {
+        //         case 'north': {
+        //             grid.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(Math.PI / 2, 0, 0)));
+        //             break; }
+        //         case 'east': {
+        //             grid.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI / 2)));
+        //             break; }
+        //     }
 
-            grid.applyMatrix4(new THREE.Matrix4().makeTranslation(pos));
+        //     grid.applyMatrix4(new THREE.Matrix4().makeTranslation(pos));
 
-            scene.add(grid);
+        //     scene.add(grid);
 
-        }
+        // }
 
-        createGrid('up', new THREE.Vector3(7.5, -0.5, 7.5));
-        createGrid('north', new THREE.Vector3(7.5, 7.5, -0.5));
-        createGrid('east', new THREE.Vector3(-0.5, 7.5, 7.5));
+        // createGrid('up', new THREE.Vector3(7.5, -0.5, 7.5));
+        // createGrid('north', new THREE.Vector3(7.5, 7.5, -0.5));
+        // createGrid('east', new THREE.Vector3(-0.5, 7.5, 7.5));
 
-        createGrid('up', new THREE.Vector3(7.5, 15.5, 7.5));
-        createGrid('north', new THREE.Vector3(7.5, 7.5, 15.5));
-        createGrid('east', new THREE.Vector3(15.5, 7.5, 7.5));
+        // createGrid('up', new THREE.Vector3(7.5, 15.5, 7.5));
+        // createGrid('north', new THREE.Vector3(7.5, 7.5, 15.5));
+        // createGrid('east', new THREE.Vector3(15.5, 7.5, 7.5));
 
-        scene.add(new THREE.AxesHelper(15));
+        // scene.add(new THREE.AxesHelper(15));
 
 
 
@@ -89,46 +88,63 @@
 
 
         function render() {
-            renderAnimFrame = requestAnimationFrame(() => render());
-
             renderer.render(scene, camera);
         }
 
-        render();
+        renderInterval = setInterval(() => render(), 1000 / 60);
 
 
 
-        function placeBlock(x: number, y: number, z: number, color: THREE.ColorRepresentation = 'white') {
+        let geometries: THREE.BufferGeometry[] = [];
+        
+        function placeBlock(x: number, y: number, z: number) {
             const cube = new THREE.BoxGeometry(1, 1, 1);
 
             cube.translate(x, y, z);
-            
-            const mesh = new THREE.Mesh(
-                cube,
-                new THREE.MeshBasicMaterial({ color })
-            );
 
-            scene.add(mesh);
+            geometries.push(cube);
         }
 
-        placeBlock(0, 0, 0, 'red');
-        placeBlock(15, 15, 15, 'red');
+        for(let cx = 0; cx < 4; cx++) {
+            for(let cz = 0; cz < 4; cz++) {
 
-        chunk.forEachBlock((bx, by, bz, block) => {
-            if(block.Name != 'minecraft:air') {
-                console.log('Place', bx, by + 64, bz);
-                placeBlock(bx, by + 64, bz);
-            }
-        });
+                const chunk = await region.getChunk(cx, cz);
+
+                console.log('chunk', cx, cz);
+
+                if(chunk == null) continue;
+
+                chunk.forEachBlock((bx, by, bz, block) => {
+                    placeBlock(bx + cx*16, by, bz + cz*16);
+                });
+
+            }    
+        }    
+
+
+        const merged = mergeGeometries(geometries);
+
+        geometries.forEach(geom => geom.dispose());
+        geometries = [];
+
+        const mesh = new THREE.Mesh(
+            merged,
+            new THREE.MeshNormalMaterial()
+        );
+        scene.add(mesh);
 
     });
+
+
+
+
 
     onDestroy(() => {
         scene.clear();
         controls.dispose();
-        cancelAnimationFrame(renderAnimFrame);
+        clearInterval(renderInterval);
         canvasResizeObserver.disconnect();
-    })
+    });
 
 </script>
 

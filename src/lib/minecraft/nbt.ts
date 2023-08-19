@@ -97,8 +97,11 @@ export function convertNBT(data: ArrayBuffer): Tag[keyof Tag] {
 
                 break; }
 
-            case TAGS.Int_Array: return { tag: type, value: new Int32Array(reader.readBuffer(reader.readNumber('Int32') * 4)) };
-            case TAGS.Long_Array: return { tag: type, value: new BigInt64Array(reader.readBuffer(reader.readNumber('Int32') * 8)) };
+            // case TAGS.Int_Array: return { tag: type, value: new Int32Array(reader.readBuffer(reader.readNumber('Int32') * 4)) };
+            // case TAGS.Long_Array: return { tag: type, value: new BigInt64Array(reader.readBuffer(reader.readNumber('Int32') * 8)) };
+            // Endianness gets messed up so we have to do it this way.
+            case TAGS.Int_Array: return { tag: type, value: new Int32Array(reader.readArray(reader.readNumber, reader.readNumber('Int32'), 'Int32')) };
+            case TAGS.Long_Array: return { tag: type, value: new BigInt64Array(reader.readArray(reader.readBigNumber, reader.readNumber('Int32'), 'BigInt64')) };
 
         }
 

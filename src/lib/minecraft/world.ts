@@ -64,7 +64,6 @@ export class Chunk {
     }))[];
 
     constructor(data: unknown) {
-        console.log(data);
         this.data = ChunkData.parse(data);
         this.sections = new Array(this.data.sections.length);
         for(let i = 0; i < this.data.sections.length; i++) {
@@ -108,21 +107,22 @@ export class Chunk {
         const numBits = Math.max(Math.ceil(Math.log2(section.palette.length)), 4);
         const mask = BigInt((1 << numBits) - 1);
 
-        console.log(data);
-
         const deserialized = new Array(4096);
 
         let dataIndex = 0;
-        let bitIndex = 64 - numBits;
+        let bitIndex = 0;
         for(let b = 0; b < 4096; b++) {
 
-            // TODO - For some reason the nibble positions are swapped.
-            deserialized[b] = section.palette[Number((data[dataIndex] >> BigInt(bitIndex)) & mask)];
+            const paletteIndex = Number((data[dataIndex] >> BigInt(bitIndex)) & mask);
+            if(paletteIndex >= section.palette.length) {
+                throw new Error(`Error while deserializing section, palette index {${paletteIndex}} is outside of palette {${section.palette.length}}.`);
+            }
 
-            bitIndex -= numBits;
+            deserialized[b] = section.palette[paletteIndex];
 
-            if(bitIndex < 0) {
-                bitIndex = 64 - numBits;
+            bitIndex += numBits;
+            if(bitIndex >= 64) {
+                bitIndex = 0;
                 dataIndex++;
             }
 
@@ -133,8 +133,11 @@ export class Chunk {
             type: 'blocks',
             blocks: deserialized
         }
-        console.log(deserialized);
 
+    }
+
+    static getBlockSectionIndex(x: number, y: number, z: number): number {
+        return ((y & 0xF) << 8) | ((z & 0xF) << 4) | (x & 0xF);
     }
 
     forEachBlock(callbackfn: (bx: number, by: number, bz: number, block: zod.TypeOf<typeof BlockState>) => void) {
@@ -154,6 +157,8 @@ export class Chunk {
                 case 'fill': {
                     const block = section.fill;
 
+                    if(block.Name == 'minecraft:air') break;
+
                     for(let sx = 0; sx < 16; sx++) {
                         for(let sy = 0; sy < 16; sy++) {
                             for(let sz = 0; sz < 16; sz++) {
@@ -163,17 +168,15 @@ export class Chunk {
                     }
                     break; }
                 case 'blocks': {
+
                     for(let sx = 0; sx < 16; sx++) {
                         for(let sy = 0; sy < 16; sy++) {
                             for(let sz = 0; sz < 16; sz++) {
-                                // const blockIndex = sy*256 + sz*16 + sx;
-                                const blockIndex = (sy << 8) | (sz << 4) | sx;
+                                const blockIndex = Chunk.getBlockSectionIndex(sx, sy, sz);
                                 
                                 const block = section.blocks[blockIndex];
-                                
-                                if(block.Name != 'minecraft:air') {
-                                    console.log(blockIndex);
-                                }
+
+                                if(block.Name == 'minecraft:air') continue;
 
                                 callbackfn(sx, section.y + sy, sz, block);
                             }
