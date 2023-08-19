@@ -175,6 +175,9 @@ export class Chunk {
 
     }
 
+    /**
+     * @param callbackfn Only callbacks for every non-air block.
+     */
     forEachBlock(callbackfn: (bx: number, by: number, bz: number, block: zod.TypeOf<typeof BlockState>) => void) {
 
         for(let i = 0; i < this.sections.length; i++) {
