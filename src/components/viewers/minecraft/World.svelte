@@ -13,6 +13,7 @@
     let canvasResizeObserver: ResizeObserver;
 
     let renderTimeout: number = -1;
+    let chunksTimeout: number = -1;
 
     let renderer: THREE.Renderer;
     let scene: THREE.Scene;
@@ -236,23 +237,40 @@
             const cx = Math.floor(x / 16);
             const cz = Math.floor(z / 16);
 
-            const radius = 5;
-            for(let dcx = -radius; dcx < radius; dcx++) {
-                for(let dcz = -radius; dcz < radius; dcz++) {
-                    if(Math.sqrt(dcx ** 2 + dcz ** 2) < radius) {
+            const renderDistance = 8;
+            const unrenderDistance = renderDistance + 2;
+            
+            // Remove far away chunks
+
+            loadedChunks = loadedChunks.filter(loadedChunk => {
+                if(Math.sqrt((loadedChunk.cx - cx) ** 2 + (loadedChunk.cz - cz) ** 2) > unrenderDistance) {
+                    if(loadedChunk.mesh) {
+                        loadedChunk.mesh.clear();
+                        loadedChunk.mesh.removeFromParent();
+                    }
+                    return false;
+                }
+                return true;
+            });
+
+
+            // Render near chunks
+            for(let dcx = -renderDistance; dcx < renderDistance; dcx++) {
+                for(let dcz = -renderDistance; dcz < renderDistance; dcz++) {
+                    if(Math.sqrt(dcx ** 2 + dcz ** 2) < renderDistance) {
                         await loadChunk(cx + dcx, cz + dcz);
                     }
                 }
             }
+
         }
-
-
 
 
 
         let lastChunkX: number;
         let lastChunkZ: number;
-        async function render() {
+
+        async function updateChunksLoop() {
 
             const cx = Math.floor(camera.position.x / 16);
             const cz = Math.floor(camera.position.z / 16);
@@ -262,7 +280,18 @@
                 lastChunkX = cx;
                 lastChunkZ = cz;
             }
-            
+
+            clearTimeout(chunksTimeout)
+            chunksTimeout = setTimeout(() => updateChunksLoop(), 500);
+        }
+
+        updateChunksLoop();
+
+
+
+
+        async function render() {
+
             if(controls.isLocked) {
                 updateControls();
             }
@@ -285,7 +314,8 @@
     onDestroy(() => {
         scene.clear();
         controls.dispose();
-        clearInterval(renderTimeout);
+        clearTimeout(chunksTimeout);
+        clearTimeout(renderTimeout);
         canvasResizeObserver.disconnect();
     });
 
