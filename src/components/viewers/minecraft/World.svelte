@@ -2,7 +2,7 @@
 <script lang="ts">
     import type { fsDirectory } from "$lib/FileSystem";
     import { onDestroy, onMount } from "svelte";
-    import { World } from "$lib/minecraft/world";
+    import { Chunk, World } from "$lib/minecraft/world";
     import * as THREE from "three";
     import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
     import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils";
@@ -95,16 +95,89 @@
 
 
 
-        let geometries: THREE.BufferGeometry[] = [];
-        
-        function placeBlock(x: number, y: number, z: number) {
-            const cube = new THREE.BoxGeometry(1, 1, 1);
+        function getChunkGeom(chunk: Chunk): THREE.BufferGeometry {
 
-            cube.translate(x, y, z);
+            let vertices: number[] = [];
 
-            geometries.push(cube);
+            chunk.forEachBlock((bx, by, bz, block) => {
+
+                if(chunk.getBlock(bx + 1, by, bz).Name == 'minecraft:air') {
+                    vertices.push(
+                        bx + 1, by, bz,
+                        bx + 1, by + 1, bz,
+                        bx + 1, by, bz + 1,
+                        bx + 1, by + 1, bz,
+                        bx + 1, by + 1, bz + 1,
+                        bx + 1, by, bz + 1
+                    );
+                }
+
+                if(chunk.getBlock(bx - 1, by, bz).Name == 'minecraft:air') {
+                    vertices.push(
+                        bx, by + 1, bz,
+                        bx, by, bz,
+                        bx, by, bz + 1,
+                        bx, by + 1, bz + 1,
+                        bx, by + 1, bz,
+                        bx, by, bz + 1
+                    );
+                }
+
+                if(chunk.getBlock(bx, by + 1, bz).Name == 'minecraft:air') {
+                    vertices.push(
+                        bx + 1, by + 1, bz,
+                        bx, by + 1, bz,
+                        bx, by + 1, bz + 1,
+                        bx + 1, by + 1, bz + 1,
+                        bx + 1, by + 1, bz,
+                        bx, by + 1, bz + 1
+                    );
+                }
+
+                if(chunk.getBlock(bx, by - 1, bz).Name == 'minecraft:air') {
+                    vertices.push(
+                        bx, by, bz,
+                        bx + 1, by, bz,
+                        bx, by, bz + 1,
+                        bx + 1, by, bz,
+                        bx + 1, by, bz + 1,
+                        bx, by, bz + 1
+                    );
+                }
+
+                if(chunk.getBlock(bx, by, bz + 1).Name == 'minecraft:air') {
+                    vertices.push(
+                        bx, by, bz + 1,
+                        bx + 1, by, bz + 1,
+                        bx, by + 1, bz + 1,
+                        bx + 1, by, bz + 1,
+                        bx + 1, by + 1, bz + 1,
+                        bx, by + 1, bz + 1
+                    );
+                }
+
+                if(chunk.getBlock(bx, by, bz - 1).Name == 'minecraft:air') {
+                    vertices.push(
+                        bx + 1, by, bz,
+                        bx, by, bz,
+                        bx, by + 1, bz,
+                        bx + 1, by + 1, bz,
+                        bx + 1, by, bz,
+                        bx, by + 1, bz
+                    );
+                }
+
+            });
+
+            const geom = new THREE.BufferGeometry();
+            geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+
+            return geom;
+
         }
 
+
+        
         for(let cx = 0; cx < 8; cx++) {
             for(let cz = 0; cz < 8; cz++) {
 
@@ -114,43 +187,21 @@
 
                 if(chunk == null) continue;
 
-                chunk.forEachBlock((bx, by, bz, block) => {
+                const geom = getChunkGeom(chunk);
+                geom.computeVertexNormals();
 
-                    if(bx > 0 && by > -64 && bz > 0 && bx < 15 && by < 319 && bz < 15) {
+                const mesh = new THREE.Mesh(
+                    geom,
+                    new THREE.MeshNormalMaterial()
+                );
 
-                        if(
-                            chunk.getBlock(bx - 1, by, bz).Name == 'minecraft:air' ||
-                            chunk.getBlock(bx + 1, by, bz).Name == 'minecraft:air' ||
-                            chunk.getBlock(bx, by - 1, bz).Name == 'minecraft:air' ||
-                            chunk.getBlock(bx, by + 1, bz).Name == 'minecraft:air' ||
-                            chunk.getBlock(bx, by, bz - 1).Name == 'minecraft:air' ||
-                            chunk.getBlock(bx, by, bz + 1).Name == 'minecraft:air'
-                        ) {
-                            placeBlock(bx + cx*16, by, bz + cz*16);
-                        }
+                mesh.translateX(cx * 16);
+                mesh.translateZ(cz * 16);
 
-                    } else {
-                        placeBlock(bx + cx*16, by, bz + cz*16);
-                    }
+                scene.add(mesh);
 
-
-
-                });
-
-            }    
-        }    
-
-
-        const merged = mergeGeometries(geometries);
-
-        geometries.forEach(geom => geom.dispose());
-        geometries = [];
-
-        const mesh = new THREE.Mesh(
-            merged,
-            new THREE.MeshNormalMaterial()
-        );
-        scene.add(mesh);
+            }
+        }
 
     });
 

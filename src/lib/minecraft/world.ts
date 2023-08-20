@@ -154,6 +154,8 @@ export class Chunk {
 
     getBlock(bx: number, by: number, bz: number): zod.TypeOf<typeof BlockState> {
 
+        if(bx < 0 || bx >= 16 || bz < 0 || bz >= 16) return BLOCK_AIR;
+
         const sectionIndex = this.sections.findIndex(section => by >= section.y && by < section.y + 16);
         const section = this.getSection(sectionIndex);
 
