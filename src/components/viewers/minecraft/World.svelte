@@ -2,10 +2,9 @@
 <script lang="ts">
     import type { fsDirectory } from "$lib/FileSystem";
     import { onDestroy, onMount } from "svelte";
-    import { Chunk, World } from "$lib/minecraft/world";
+    import { Chunk, Region, World } from "$lib/minecraft/world";
     import * as THREE from "three";
     import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-    import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils";
 
     export let entry: fsDirectory;
 
@@ -13,7 +12,7 @@
 
     let canvasResizeObserver: ResizeObserver;
 
-    let renderInterval: number = -1;
+    let renderTimeout: number = -1;
 
     let renderer: THREE.Renderer;
     let scene: THREE.Scene;
@@ -25,9 +24,6 @@
         console.clear();
 
         const world = new World(entry);
-        const region = await world.getRegion(0, 0);
-        if(!region) return;
-        await region.init();
 
 
 
@@ -45,37 +41,6 @@
 
 
 
-        // function createGrid(facing: 'up' | 'north' | 'east', pos: THREE.Vector3) {
-
-        //     const grid = new THREE.GridHelper(16, 16);
-
-        //     switch(facing) {
-        //         case 'north': {
-        //             grid.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(Math.PI / 2, 0, 0)));
-        //             break; }
-        //         case 'east': {
-        //             grid.applyMatrix4(new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(Math.PI / 2, 0, Math.PI / 2)));
-        //             break; }
-        //     }
-
-        //     grid.applyMatrix4(new THREE.Matrix4().makeTranslation(pos));
-
-        //     scene.add(grid);
-
-        // }
-
-        // createGrid('up', new THREE.Vector3(7.5, -0.5, 7.5));
-        // createGrid('north', new THREE.Vector3(7.5, 7.5, -0.5));
-        // createGrid('east', new THREE.Vector3(-0.5, 7.5, 7.5));
-
-        // createGrid('up', new THREE.Vector3(7.5, 15.5, 7.5));
-        // createGrid('north', new THREE.Vector3(7.5, 7.5, 15.5));
-        // createGrid('east', new THREE.Vector3(15.5, 7.5, 7.5));
-
-        // scene.add(new THREE.AxesHelper(15));
-
-
-
         canvasResizeObserver = new ResizeObserver(() => {
             canvas.width = canvas.clientWidth;
             canvas.height = canvas.clientHeight;
@@ -87,11 +52,23 @@
 
 
 
-        function render() {
-            renderer.render(scene, camera);
+
+
+        type LoadedChunk = {
+            cx: number;
+            cz: number;
+            mesh: THREE.Mesh | null;
         }
 
-        renderInterval = setInterval(() => render(), 1000 / 60);
+        type LoadedRegion = {
+            rx: number;
+            rz: number;
+            region: Region | null;
+        }
+
+        let loadedChunks: LoadedChunk[] = [];
+
+        let loadedRegions: LoadedRegion[] = [];
 
 
 
@@ -166,7 +143,6 @@
                         bx, by + 1, bz
                     );
                 }
-
             });
 
             const geom = new THREE.BufferGeometry();
@@ -176,32 +152,98 @@
 
         }
 
+        async function getRegion(rx: number, rz: number): Promise<LoadedRegion> {
 
-        
-        for(let cx = 0; cx < 8; cx++) {
-            for(let cz = 0; cz < 8; cz++) {
+            const loadedRegion = loadedRegions.find(reg => reg.rx == rx && reg.rz == rz);
 
-                const chunk = await region.getChunk(cx, cz);
+            if(loadedRegion != null) return loadedRegion;
 
-                console.log('chunk', cx, cz);
+            const region = await world.getRegion(rx, rz);
+            await region?.init();
+            loadedRegions.push({ rx, rz, region });
 
-                if(chunk == null) continue;
+            return { rx, rz, region };
 
-                const geom = getChunkGeom(chunk);
-                geom.computeVertexNormals();
+        }
 
-                const mesh = new THREE.Mesh(
-                    geom,
-                    new THREE.MeshNormalMaterial()
-                );
+        async function loadChunk(cx: number, cz: number) {
 
-                mesh.translateX(cx * 16);
-                mesh.translateZ(cz * 16);
+            if(loadedChunks.some(chunk => chunk.cx == cx && chunk.cz == cz)) return;
 
-                scene.add(mesh);
+            const loadedRegion = await getRegion(Math.floor(cx / 32), Math.floor(cz / 32));
 
+            if(loadedRegion.region == null) {
+                loadedChunks.push({ cx, cz, mesh: null });
+                return;
+            }
+
+            const chunk = await loadedRegion.region.getChunk(cx, cz);
+
+            if(chunk == null) {
+                loadedChunks.push({ cx, cz, mesh: null });
+                return;
+            }
+
+            const geom = getChunkGeom(chunk);
+            geom.computeVertexNormals();
+
+            const mesh = new THREE.Mesh(
+                geom,
+                new THREE.MeshNormalMaterial()
+            );
+
+            mesh.translateX(cx * 16);
+            mesh.translateZ(cz * 16);
+
+            scene.add(mesh);
+
+            loadedChunks.push({ cx, cz, mesh });
+
+        }
+
+        async function updateChunks() {
+            const x = Math.floor(camera.position.x);
+            const z = Math.floor(camera.position.z);
+
+            const cx = Math.floor(x / 16);
+            const cz = Math.floor(z / 16);
+
+            const radius = 5;
+            for(let dcx = -radius; dcx < radius; dcx++) {
+                for(let dcz = -radius; dcz < radius; dcz++) {
+                    if(Math.sqrt(dcx ** 2 + dcz ** 2) < radius) {
+                        await loadChunk(cx + dcx, cz + dcz);
+                    }
+                }
             }
         }
+
+
+
+
+
+        let lastChunkX = 0;
+        let lastChunkZ = 0;
+        async function render() {
+
+            const cx = Math.floor(camera.position.x / 16);
+            const cz = Math.floor(camera.position.z / 16);
+
+            if(cx != lastChunkX || cz != lastChunkZ) {
+                await updateChunks();
+                lastChunkX = cx;
+                lastChunkZ = cz;
+            }
+            
+            renderer.render(scene, camera);
+
+            clearTimeout(renderTimeout);
+            renderTimeout = setTimeout(() => render(), 1000 / 60);
+        }
+
+        render();
+
+
 
     });
 
@@ -212,7 +254,7 @@
     onDestroy(() => {
         scene.clear();
         controls.dispose();
-        clearInterval(renderInterval);
+        clearInterval(renderTimeout);
         canvasResizeObserver.disconnect();
     });
 

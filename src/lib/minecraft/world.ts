@@ -263,8 +263,8 @@ export class Region {
 
     async getChunk(cx: number, cz: number): Promise<Chunk | null> {
 
-        const ind = cx + cz * REGION_CHUNK_SIZE;
-
+        const ind = (cx & 0x1F) + (cz & 0x1F) * REGION_CHUNK_SIZE;
+        
         const offset = this.offsets[ind] * REGION_CHUNK_SECTOR_SIZE;
         const length = this.lengths[ind] * REGION_CHUNK_SECTOR_SIZE;
 
