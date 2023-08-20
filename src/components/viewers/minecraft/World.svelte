@@ -4,7 +4,7 @@
     import { onDestroy, onMount } from "svelte";
     import { Chunk, Region, World } from "$lib/minecraft/world";
     import * as THREE from "three";
-    import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+    import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls";
 
     export let entry: fsDirectory;
 
@@ -17,11 +17,19 @@
     let renderer: THREE.Renderer;
     let scene: THREE.Scene;
     let camera: THREE.PerspectiveCamera;
-    let controls: OrbitControls;
+    let controls: PointerLockControls;
+
+    let keys: Set<string> = new Set();
+
+    function keyDown(ev: KeyboardEvent) {
+        keys.add(ev.code);
+    }
+
+    function keyUp(ev: KeyboardEvent) {
+        keys.delete(ev.code);
+    }
 
     onMount(async () => {
-
-        console.clear();
 
         const world = new World(entry);
 
@@ -34,10 +42,30 @@
 
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(91, 1, 0.1, 2000);
-        controls = new OrbitControls(camera, canvas);
+        controls = new PointerLockControls(camera, canvas);
 
-        camera.position.set(0, 16, 16);
-        controls.update();
+        camera.position.set(0, 100, 0)
+
+        function updateControls(dt: number = 1) {
+            let move = new THREE.Vector3();
+            let speed = 1;
+
+            const forward = camera.getWorldDirection(new THREE.Vector3());
+            const up = camera.up;
+            const right = new THREE.Vector3().crossVectors(forward, up);
+
+            if(keys.has('KeyW')) move.add(forward);
+            if(keys.has('KeyS')) move.addScaledVector(forward, -1);
+            if(keys.has('KeyD')) move.add(right);
+            if(keys.has('KeyA')) move.addScaledVector(right, -1);
+            if(keys.has('Space')) move.add(up);
+            if(keys.has('ControlLeft')) move.addScaledVector(up, -1);
+
+            camera.position.addScaledVector(move.normalize(), speed * dt);
+        }
+
+
+
 
 
 
@@ -222,8 +250,8 @@
 
 
 
-        let lastChunkX = 0;
-        let lastChunkZ = 0;
+        let lastChunkX: number;
+        let lastChunkZ: number;
         async function render() {
 
             const cx = Math.floor(camera.position.x / 16);
@@ -235,6 +263,9 @@
                 lastChunkZ = cz;
             }
             
+            if(controls.isLocked) {
+                updateControls();
+            }
             renderer.render(scene, camera);
 
             clearTimeout(renderTimeout);
@@ -269,4 +300,9 @@
 
 </style>
 
-<canvas bind:this={canvas}></canvas>
+<svelte:body
+    on:keydown={keyDown}
+    on:keyup={keyUp}
+/>
+
+<canvas bind:this={canvas} on:click={() => controls.lock()}></canvas>
