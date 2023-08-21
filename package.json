@@ -1,5 +1,6 @@
 {
 	"name": "asset-viewer",
+    "description": "View assets of various files inside the browser.",
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
