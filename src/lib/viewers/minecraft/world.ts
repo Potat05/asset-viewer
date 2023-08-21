@@ -27,7 +27,11 @@ const viewer: Viewer = {
 
             const icon = await entry.get('icon.png');
 
-            if(icon == null || icon.type == fsEntry.Directory) {
+            if(icon == null) {
+                return "/bootstrap-icons/boxes.svg";
+            }
+
+            if(icon.type == fsEntry.Directory) {
                 return null;
             }
 
