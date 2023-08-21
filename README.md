@@ -22,6 +22,7 @@ Drag and drop a directory onto the window.
 * Games
     * Minecraft
         * NBT viewer
+        * World Viewer
     * Ren'Py game engine
         * Archive
         * Compiled code
@@ -30,8 +31,7 @@ Drag and drop a directory onto the window.
 
 * Zip
 * Minecraft
-    * World viewer
-        * With resource pack
+    * World with resource pack
 * Source engine
     * Map viewer
     * Texture viewer
