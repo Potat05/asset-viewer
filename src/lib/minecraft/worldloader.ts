@@ -112,18 +112,43 @@ export class WorldLoader extends EventDispatcher<{
         });
 
         // Load chunks
-        // TODO - Make this load chunks in a circular manner.
+
+        // This is probably not the best way to go about this.
+        // But for now we just iterate first to find all unloaded chunks in the radius.
+        // Then loop again slowly taking the closest unloaded chunk then load it.
+        let toLoad: { cx: number, cz: number }[] = [];
+
         for(let dcx = -this.renderDistance; dcx < this.renderDistance; dcx++) {
             for(let dcz = -this.renderDistance; dcz < this.renderDistance; dcz++) {
-
-                if(chunkDist(0, 0, dcx, dcz) >= this.renderDistance) continue;
 
                 const cx = lcx + dcx;
                 const cz = lcz + dcz;
 
-                await this.loadChunk(cx, cz);
+                if(chunkDist(lcx, lcz, cx, cz) > this.renderDistance) continue;
+                
+                if(this.chunks.some(chunk => chunk.cx == cx && chunk.cz == cz)) continue;
 
-            }            
+                toLoad.push({ cx, cz });
+
+            }
+        }
+
+        while(toLoad.length > 0) {
+
+            const closest = toLoad.reduce((closest, chunk) => {
+                if(closest == undefined) return chunk;
+
+                if(chunkDist(lcx, lcz, chunk.cx, chunk.cz) < chunkDist(lcx, lcz, closest.cx, closest.cz)) {
+                    return chunk;
+                } else {
+                    return closest;
+                }
+            });
+
+            toLoad.splice(toLoad.indexOf(closest), 1);
+
+            await this.loadChunk(closest.cx, closest.cz);
+
         }
 
 
