@@ -5,12 +5,15 @@
     import { Chunk, Region, World } from "$lib/minecraft/world";
     import * as THREE from "three";
     import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls";
+    import { WorldLoader } from "$lib/minecraft/worldloader";
 
     export let entry: fsDirectory;
 
     let canvas: HTMLCanvasElement;
 
     let canvasResizeObserver: ResizeObserver;
+
+    let loader: WorldLoader;
 
     let renderTimeout: number = -1;
     let chunksTimeout: number = -1;
@@ -78,26 +81,6 @@
             camera.updateProjectionMatrix();
         });
         canvasResizeObserver.observe(canvas);
-
-
-
-
-
-        type LoadedChunk = {
-            cx: number;
-            cz: number;
-            mesh: THREE.Mesh | null;
-        }
-
-        type LoadedRegion = {
-            rx: number;
-            rz: number;
-            region: Region | null;
-        }
-
-        let loadedChunks: LoadedChunk[] = [];
-
-        let loadedRegions: LoadedRegion[] = [];
 
 
 
@@ -181,89 +164,41 @@
 
         }
 
-        async function getRegion(rx: number, rz: number): Promise<LoadedRegion> {
 
-            const loadedRegion = loadedRegions.find(reg => reg.rx == rx && reg.rz == rz);
 
-            if(loadedRegion != null) return loadedRegion;
+        let loaded: { mesh: THREE.Mesh, chunk: Chunk }[] = [];
 
-            const region = await world.getRegion(rx, rz);
-            await region?.init();
-            loadedRegions.push({ rx, rz, region });
+        loader = new WorldLoader(world, 8, 10);
 
-            return { rx, rz, region };
-
-        }
-
-        async function loadChunk(cx: number, cz: number) {
-
-            if(loadedChunks.some(chunk => chunk.cx == cx && chunk.cz == cz)) return;
-
-            const loadedRegion = await getRegion(Math.floor(cx / 32), Math.floor(cz / 32));
-
-            if(loadedRegion.region == null) {
-                loadedChunks.push({ cx, cz, mesh: null });
-                return;
-            }
-
-            const chunk = await loadedRegion.region.getChunk(cx, cz);
-
-            if(chunk == null) {
-                loadedChunks.push({ cx, cz, mesh: null });
-                return;
-            }
+        loader.addEventListener('loadchunk', chunk => {
 
             const geom = getChunkGeom(chunk);
             geom.computeVertexNormals();
 
-            const mesh = new THREE.Mesh(
-                geom,
-                new THREE.MeshNormalMaterial()
-            );
+            const mesh = new THREE.Mesh(geom, new THREE.MeshNormalMaterial());
 
-            mesh.translateX(cx * 16);
-            mesh.translateZ(cz * 16);
+            mesh.translateX(chunk.cx * 16);
+            mesh.translateZ(chunk.cz * 16);
 
             scene.add(mesh);
 
-            loadedChunks.push({ cx, cz, mesh });
+            loaded.push({ mesh, chunk });
+        });
 
-        }
+        loader.addEventListener('unloadchunk', chunk => {
 
-        async function updateChunks() {
-            const x = Math.floor(camera.position.x);
-            const z = Math.floor(camera.position.z);
+            const loadedChunk = loaded.find(v => v.chunk == chunk);
 
-            const cx = Math.floor(x / 16);
-            const cz = Math.floor(z / 16);
-
-            const renderDistance = 8;
-            const unrenderDistance = renderDistance + 2;
-            
-            // Remove far away chunks
-
-            loadedChunks = loadedChunks.filter(loadedChunk => {
-                if(Math.sqrt((loadedChunk.cx - cx) ** 2 + (loadedChunk.cz - cz) ** 2) > unrenderDistance) {
-                    if(loadedChunk.mesh) {
-                        loadedChunk.mesh.clear();
-                        loadedChunk.mesh.removeFromParent();
-                    }
-                    return false;
-                }
-                return true;
-            });
-
-
-            // Render near chunks
-            for(let dcx = -renderDistance; dcx < renderDistance; dcx++) {
-                for(let dcz = -renderDistance; dcz < renderDistance; dcz++) {
-                    if(Math.sqrt(dcx ** 2 + dcz ** 2) < renderDistance) {
-                        await loadChunk(cx + dcx, cz + dcz);
-                    }
-                }
+            if(loadedChunk == null) {
+                throw new Error('Error while unloading chunk.');
             }
 
-        }
+            loadedChunk.mesh.clear();
+            loadedChunk.mesh.removeFromParent();
+
+            loaded = loaded.filter(v => v != loadedChunk);
+
+        });
 
 
 
@@ -276,7 +211,7 @@
             const cz = Math.floor(camera.position.z / 16);
 
             if(cx != lastChunkX || cz != lastChunkZ) {
-                await updateChunks();
+                await loader.update(cx, cz);
                 lastChunkX = cx;
                 lastChunkZ = cz;
             }
@@ -312,6 +247,7 @@
 
 
     onDestroy(() => {
+        loader.destroyDispatcher();
         scene.clear();
         controls.dispose();
         clearTimeout(chunksTimeout);

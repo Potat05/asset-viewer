@@ -63,10 +63,15 @@ type Section = {
 export class Chunk {
     data: zod.TypeOf<typeof ChunkData>;
 
+    cx: number;
+    cz: number;
+
     sections: Section[];
 
     constructor(data: unknown) {
         this.data = ChunkData.parse(data);
+        this.cx = this.data.xPos;
+        this.cz = this.data.zPos;
         this.sections = new Array(this.data.sections.length);
         for(let i = 0; i < this.data.sections.length; i++) {
             this.sections[i] = {
@@ -240,8 +245,14 @@ const REGION_CHUNK_SECTOR_SIZE = 4096;
 export class Region {
     file: fsFile;
 
-    constructor(file: fsFile) {
+    rx: number;
+    rz: number;
+
+    constructor(file: fsFile, rx: number, rz: number) {
         this.file = file;
+
+        this.rx = rx;
+        this.rz = rz;
     }
 
     offsets: Uint32Array = new Uint32Array(REGION_CHUNK_COUNT);
@@ -308,7 +319,7 @@ export class World {
 
         if(file == null || file.type != fsEntry.File) return null;
 
-        return new Region(file);
+        return new Region(file, rx, rz);
 
     }
 }
