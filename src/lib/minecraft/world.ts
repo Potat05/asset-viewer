@@ -111,6 +111,7 @@ export class Chunk {
             return;
         }
 
+        // TODO - Deserializing a section with more than 4 bits glitches out.
         const numBits = Math.max(Math.ceil(Math.log2(section.palette.length)), 4);
         const mask = BigInt((1 << numBits) - 1);
 
