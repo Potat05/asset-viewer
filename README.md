@@ -53,6 +53,8 @@ Drag and drop a directory onto the window.
 [Pako](https://www.npmjs.com/package/pako) the [zlib](https://www.zlib.net/) port for deflate compression.  
 [Bootstrap](https://icons.getbootstrap.com/) for icons.  
 [highlight.js](https://highlightjs.org/) for code highlighting.  
+[three.js](https://threejs.org/), an easy to use 3D library.  
+[Zod](https://zod.dev/) for schema validation.  
 
 ## Huge Help
 
