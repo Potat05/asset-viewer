@@ -52,7 +52,7 @@
 
         function updateControls(dt: number = 1) {
             let move = new THREE.Vector3();
-            let speed = 1;
+            let speed = 0.1;
 
             const forward = camera.getWorldDirection(new THREE.Vector3());
             const up = camera.up;
@@ -224,13 +224,16 @@
 
 
 
+        let lastRenderTime = Date.now();
 
         async function render() {
 
             if(controls.isLocked) {
-                updateControls();
+                updateControls(Date.now() - lastRenderTime);
             }
             renderer.render(scene, camera);
+
+            lastRenderTime = Date.now();
 
             clearTimeout(renderTimeout);
             renderTimeout = setTimeout(() => render(), 1000 / 60);
