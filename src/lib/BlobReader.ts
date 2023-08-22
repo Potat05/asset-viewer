@@ -1,6 +1,5 @@
 
 import { DataReader } from "./DataReader";
-import { NumberUtils } from "./NumberUtils";
 
 
 
@@ -12,7 +11,7 @@ export class BlobReader extends DataReader {
         return this.blob.size;
     }
     public get blobEof(): boolean {
-        return this.blobPointer < this.blobLength;
+        return this.blobPointer >= this.blobLength;
     }
     public get blobDataLeft(): number {
         return this.blobLength - this.blobPointer;
