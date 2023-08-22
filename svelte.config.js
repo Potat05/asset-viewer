@@ -10,7 +10,9 @@ const config = {
 	kit: {
 		// adapter-static is used for github pages, see https://kit.svelte.dev/docs/adapter-static.
 		adapter: adapter(),
-        base: '/asset-viewer'
+        paths: {
+            base: '/asset-viewer'
+        }
 	}
 };
 
