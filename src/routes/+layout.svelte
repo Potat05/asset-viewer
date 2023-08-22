@@ -18,6 +18,8 @@
 
     </style>
 
+    <title>Asset Viewer</title>
+
 </svelte:head>
 
 <style>
