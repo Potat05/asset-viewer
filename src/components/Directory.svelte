@@ -114,15 +114,15 @@
 
                         {#if !isArchive}
                             {#if !expanded}
-                                <img src="/bootstrap-icons/folder-fill.svg" alt="Directory Collapsed Icon">
+                                <img src="/asset-viewer/bootstrap-icons/folder-fill.svg" alt="Directory Collapsed Icon">
                             {:else}
-                                <img src="/bootstrap-icons/folder.svg" alt="Directory Icon">
+                                <img src="/asset-viewer/bootstrap-icons/folder.svg" alt="Directory Icon">
                             {/if}
                         {:else}
                             {#if !expanded}
-                                <img src="/bootstrap-icons/archive-fill.svg" alt="Directory Collapsed Archive Icon">
+                                <img src="/asset-viewer/bootstrap-icons/archive-fill.svg" alt="Directory Collapsed Archive Icon">
                             {:else}
-                                <img src="/bootstrap-icons/archive.svg" alt="Directory Archive Icon">
+                                <img src="/asset-viewer/bootstrap-icons/archive.svg" alt="Directory Archive Icon">
                             {/if}
                         {/if}
 
@@ -145,7 +145,7 @@
                     openViewer(dir);
                 }}>
 
-                    <img src="/bootstrap-icons/eye.svg" alt="Open Viewer Icon">
+                    <img src="/asset-viewer/bootstrap-icons/eye.svg" alt="Open Viewer Icon">
 
                 </div>
 

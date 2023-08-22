@@ -22,7 +22,7 @@ const viewer: Viewer = {
 
     },
     getIcon: async () => {
-        return "/bootstrap-icons/file-earmark-text.svg";
+        return "/asset-viewer/bootstrap-icons/file-earmark-text.svg";
     }
 };
 

@@ -209,7 +209,7 @@ const viewer: Viewer = {
 
             const iconData = await extractIcon(await entry.blob());
 
-            if(!iconData) return '/bootstrap-icons/filetype-exe.svg';
+            if(!iconData) return '/asset-viewer/bootstrap-icons/filetype-exe.svg';
 
             return iconData;
 

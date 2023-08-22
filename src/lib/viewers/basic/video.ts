@@ -22,7 +22,7 @@ const viewer: Viewer = {
 
     },
     getIcon: async () => {
-        return "/bootstrap-icons/file-play.svg";
+        return "/asset-viewer/bootstrap-icons/file-play.svg";
     }
 };
 

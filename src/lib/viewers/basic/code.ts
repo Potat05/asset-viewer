@@ -56,7 +56,7 @@ const viewer: Viewer = {
 
     },
     getIcon: async () => {
-        return "/bootstrap-icons/file-earmark-code.svg";
+        return "/asset-viewer/bootstrap-icons/file-earmark-code.svg";
     }
 };
 

@@ -60,7 +60,7 @@
 
                 {#if icon == null}
 
-                    <img src="/bootstrap-icons/file-earmark.svg" alt="File Icon">
+                    <img src="/asset-viewer/bootstrap-icons/file-earmark.svg" alt="File Icon">
 
                 {:else}
 
