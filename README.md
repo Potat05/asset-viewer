@@ -19,6 +19,7 @@ Drag and drop a directory onto the window.
     * Image
     * Video
     * Code
+    * Zip Archive
 * Advanced
     * Executable (Icon)
 * Games
@@ -31,7 +32,6 @@ Drag and drop a directory onto the window.
 
 ## TODO Viewers
 
-* Zip
 * Minecraft
     * World with resource pack
 * Source engine

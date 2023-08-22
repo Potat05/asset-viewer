@@ -116,6 +116,9 @@ createNewViewer(VideoViewer);
 import CodeViewer from "./viewers/basic/code";
 createNewViewer(CodeViewer);
 
+import ZipViewer from "./viewers/basic/zip";
+createNewViewer(ZipViewer);
+
 
 
 import ExecutableViewer from "./viewers/advanced/executable";
