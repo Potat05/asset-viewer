@@ -1,4 +1,6 @@
-# asset-viewer
+# [asset-viewer](https://potat05.github.io/asset-viewer/)
+
+https://potat05.github.io/asset-viewer/
 
 View and extract a wide variety of file types inside the browser.
 
