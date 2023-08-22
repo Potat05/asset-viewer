@@ -30,8 +30,14 @@
 
         const list = Object.values(await dir.list());
 
-        await Promise.all(list.map(entry => {
-            return findViewers(entry);
+        await Promise.all(list.map(async entry => {
+
+            try {
+                await findViewers(entry);
+            } catch(err) {
+                console.error(err);
+            }
+            
         }));
 
         entries = Object.values(await dir.list())
