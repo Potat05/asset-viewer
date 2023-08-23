@@ -84,6 +84,15 @@ export class Chunk {
     deserializeSection(ind: number) {
         if(this.sections[ind].type != 'unset') return;
 
+        if(this.data.DataVersion < 2529) {
+            console.warn(`Chunk ${this.cx} ${this.cz} with unsupported data version.`);
+            this.sections[ind] = {
+                y: this.sections[ind].y,
+                type: 'empty'
+            }
+            return;
+        }
+
         const section = this.data.sections[ind].block_states;
         if(section == undefined) {
             this.sections[ind] = {
@@ -111,30 +120,60 @@ export class Chunk {
             return;
         }
 
-        // TODO - Deserializing a section with more than 4 bits glitches out.
-        const numBits = Math.max(Math.ceil(Math.log2(section.palette.length)), 4);
-        const mask = BigInt((1 << numBits) - 1);
 
-        const deserialized = new Array(4096);
 
-        let dataIndex = 0;
-        let bitIndex = 0;
+        const deserialized: zod.TypeOf<typeof BlockState>[] = new Array(4096);
+
+
+
+        // // TODO - Deserializing a section with more than 4 bits glitches out.
+        // const numBits = Math.max(Math.ceil(Math.log2(section.palette.length)), 4);
+        // const mask = BigInt((1 << numBits) - 1);
+
+        // let dataIndex = 0;
+        // let bitIndex = 0;
+        // for(let b = 0; b < 4096; b++) {
+
+        //     const paletteIndex = Number((data[dataIndex] >> BigInt(bitIndex)) & mask);
+        //     if(paletteIndex >= section.palette.length) {
+        //         throw new Error(`Error while deserializing section, palette index {${paletteIndex}} is outside of palette {${section.palette.length}}.`);
+        //     }
+
+        //     deserialized[b] = section.palette[paletteIndex];
+
+        //     bitIndex += numBits;
+        //     if(bitIndex >= 64) {
+        //         bitIndex = 0;
+        //         dataIndex++;
+        //     }
+
+        // }
+
+
+
+        // https://github.com/spoutn1k/mcmap/blob/NBT19133/src/chunk_format_versions/section_format.cpp
+        // (Temporary fix)
+        // For later we should use the above method to decode chunks.
+        // As it is most likely faster and simpler, but for now we use this until above gets fixed.
+        const blockBits = Math.max(Math.ceil(Math.log2(section.palette.length)), 4);
+        const blockMask = BigInt((1 << blockBits) - 1);
+        const blocksPerDataIndex = Math.floor(64 / blockBits);
+
         for(let b = 0; b < 4096; b++) {
 
-            const paletteIndex = Number((data[dataIndex] >> BigInt(bitIndex)) & mask);
+            const dataIndex = Math.floor(b / blocksPerDataIndex);
+            const padding = (b - dataIndex * blocksPerDataIndex) * blockBits;
+
+            const paletteIndex = Number((data[dataIndex] >> BigInt(padding)) & blockMask);
             if(paletteIndex >= section.palette.length) {
                 throw new Error(`Error while deserializing section, palette index {${paletteIndex}} is outside of palette {${section.palette.length}}.`);
             }
 
             deserialized[b] = section.palette[paletteIndex];
 
-            bitIndex += numBits;
-            if(bitIndex >= 64) {
-                bitIndex = 0;
-                dataIndex++;
-            }
-
         }
+
+
 
         this.sections[ind] = {
             y: this.sections[ind].y,
