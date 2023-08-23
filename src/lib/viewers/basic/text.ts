@@ -13,7 +13,9 @@ const viewer: Viewer = {
             'txt',
             'gitignore',
             'npmrc',
-            'LICENSE'
+            'LICENSE',
+            'cfg',
+            'properties'
         ].includes(entry.name.split('.').pop()?.toLowerCase() ?? '');
     },
     createViewer: async (entry, target) => {

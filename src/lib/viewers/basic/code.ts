@@ -30,6 +30,15 @@ LANGS['py'] = lang_python;
 import lang_bash from "svelte-highlight/languages/bash";
 LANGS['sh'] = lang_bash;
 
+import lang_cpp from "svelte-highlight/languages/cpp";
+LANGS['c'] = lang_cpp;
+LANGS['cpp'] = lang_cpp;
+LANGS['h'] = lang_cpp;
+LANGS['hpp'] = lang_cpp;
+LANGS['glsl'] = lang_cpp;
+LANGS['vsh'] = lang_cpp;
+LANGS['fsh'] = lang_cpp;
+
 
 
 const viewer: Viewer = {
