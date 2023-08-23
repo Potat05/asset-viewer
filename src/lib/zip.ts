@@ -3,6 +3,8 @@ import { BlobReader } from "./BlobReader";
 import { fsEntry, type fsDirectory, type fsFile, fsUtils } from "./FileSystem";
 import type { Viewer } from "./Viewer";
 import * as pako from "pako";
+import * as lzma from "./codecs/lzma";
+import { DataReader } from "./DataReader";
 
 
 
@@ -68,6 +70,10 @@ class ZipFile implements fsFile {
 
         if(this.loadedBlob != null) return this.loadedBlob;
 
+        if(this.compressionMethod != Compression.none) {
+            console.debug(`Decompressing file ${this.name} with ${Compression[this.compressionMethod] ?? 'unknown'} compression method`);
+        }
+
         const slice = this.zip.slice(this.offset, this.offset + this.compressedSize);
 
         switch(this.compressionMethod) {
@@ -83,6 +89,29 @@ class ZipFile implements fsFile {
                 const buffer = await slice.arrayBuffer();
                 const inflated = pako.inflateRaw(buffer);
                 this.loadedBlob = new Blob([ inflated ]);
+
+                break; }
+
+            case Compression.lzma: {
+
+                const buffer = await slice.arrayBuffer();
+                
+                const reader = new DataReader(buffer);
+
+                const versionMajor = reader.readNumber('Uint8');
+                const versionMinor = reader.readNumber('Uint8');
+
+                const propsLength = reader.readNumber('Uint16');
+
+                const props = reader.readBuffer(propsLength);
+
+                const uncompressed = lzma.decompress(
+                    reader.readBuffer(reader.dataLeft),
+                    lzma.decodeLZMAProperties(props),
+                    this.uncompressedSize
+                );
+
+                this.loadedBlob = new Blob([ uncompressed ]);
 
                 break; }
 

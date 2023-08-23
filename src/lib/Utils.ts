@@ -7,7 +7,7 @@ export namespace Utils {
     export function wait(ms: number): Promise<void> {
         return new Promise(r => setTimeout(r, ms));
     }
-
+    
 
 
     const spaceChars = ' \n\t\\=+-/*:[](){}'.split('').map(char => char.charCodeAt(0));
@@ -49,6 +49,36 @@ export namespace Utils {
 
         return averageWordLength > isBinaryMaxWordLength
 
+    }
+
+
+
+    export type DataBuffer = 
+        ArrayBuffer |
+        Uint8Array |
+        Uint8ClampedArray |
+        Int8Array |
+        Uint16Array |
+        Int16Array |
+        Uint32Array |
+        Int32Array |
+        BigUint64Array |
+        BigInt64Array |
+        Float32Array |
+        Float64Array;
+
+    export function getBuffer(array: Utils.DataBuffer): ArrayBuffer {
+        return (array instanceof ArrayBuffer ? array : array.buffer);
+    }
+
+
+
+    export function initArray<T>(length: number, map: (index: number) => T): T[] {
+        let arr = new Array(length);
+        for(let i = 0; i < length; i++) {
+            arr[i] = map(i);
+        }
+        return arr;
     }
 
 }
