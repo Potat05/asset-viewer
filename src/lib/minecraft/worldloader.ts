@@ -9,17 +9,27 @@ function chunkDist(cx1: number, cz1: number, cx2: number, cz2: number): number {
 
 
 
-type InvalidChunk = {
+type LoaderChunk = {
+    type: 'loaded';
     cx: number;
     cz: number;
-    data: null;
-}
+    data: Chunk;
+} | {
+    type: 'empty';
+    cx: number;
+    cz: number;
+};
 
-type InvalidRegion = {
+type LoaderRegion = {
+    type: 'loaded';
     rx: number;
     rz: number;
-    file: null;
-}
+    data: Region;
+} | {
+    type: 'empty';
+    rx: number;
+    rz: number;
+};
 
 
 
@@ -33,8 +43,8 @@ export class WorldLoader extends EventDispatcher<{
     public renderDistance: number;
     public unloadDistance: number;
 
-    private chunks: (Chunk | InvalidChunk)[] = [];
-    private regions: (Region | InvalidRegion)[] = [];
+    private chunks: LoaderChunk[] = [];
+    private regions: LoaderRegion[] = [];
 
     constructor(world: World, renderDistance: number, unloadDistance: number) {
         super();
@@ -46,7 +56,7 @@ export class WorldLoader extends EventDispatcher<{
 
 
 
-    private async getRegion(rx: number, rz: number): Promise<Region | InvalidRegion> {
+    private async getRegion(rx: number, rz: number): Promise<LoaderRegion> {
 
         const findRegion = this.regions.find(region => region.rx == rx && region.rz == rz);
         if(findRegion != null) {
@@ -56,15 +66,16 @@ export class WorldLoader extends EventDispatcher<{
         const region = await this.world.getRegion(rx, rz);
 
         if(region == null) {
-            const newRegion = { rx, rz, file: null };
+            const newRegion: LoaderRegion = { type: 'empty', rx, rz};
             this.regions.push(newRegion);
             return newRegion;
         }
 
         await region.init();
 
-        this.regions.push(region);
-        return region;
+        const newRegion: LoaderRegion = { type: 'loaded', rx, rz, data: region };
+        this.regions.push(newRegion);
+        return newRegion;
 
     }
 
@@ -74,16 +85,16 @@ export class WorldLoader extends EventDispatcher<{
 
         const region = await this.getRegion(Math.floor(cx / 32), Math.floor(cz / 32));
 
-        if(region.file == null) return;
+        if(region.type != 'loaded') return;
 
-        const chunk = await region.getChunk(cx, cz);
+        const chunk = await region.data.getChunk(cx, cz);
 
         if(chunk == null) {
-            this.chunks.push({ cx, cz, data: null });
+            this.chunks.push({ type: 'empty', cx, cz });
             return;
         }
 
-        this.chunks.push(chunk);
+        this.chunks.push({ type: 'loaded', cx, cz, data: chunk });
 
         this.dispatchEvent('loadchunk', chunk);
 
@@ -103,8 +114,8 @@ export class WorldLoader extends EventDispatcher<{
         // Unload chunks
         this.chunks = this.chunks.filter(chunk => {
             if(chunkDist(lcx, lcz, chunk.cx, chunk.cz) > this.unloadDistance) {
-                if(chunk.data != null) {
-                    this.dispatchEvent('unloadchunk', chunk);
+                if(chunk.type == 'loaded') {
+                    this.dispatchEvent('unloadchunk', chunk.data);
                 }
                 return false;
             }
