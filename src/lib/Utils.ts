@@ -81,6 +81,15 @@ export namespace Utils {
         return arr;
     }
 
+
+
+
+    let globalIDValue = 0;
+
+    export function getID(): number {
+        return globalIDValue++;
+    }
+
 }
 
 
