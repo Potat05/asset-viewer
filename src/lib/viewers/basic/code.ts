@@ -39,6 +39,9 @@ LANGS['glsl'] = lang_cpp;
 LANGS['vsh'] = lang_cpp;
 LANGS['fsh'] = lang_cpp;
 
+import lang_rust from "svelte-highlight/languages/rust";
+LANGS['rs'] = lang_rust;
+
 
 
 const viewer: Viewer = {
