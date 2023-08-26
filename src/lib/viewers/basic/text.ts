@@ -13,7 +13,7 @@ const viewer: Viewer = {
             'txt',
             'gitignore',
             'npmrc',
-            'LICENSE',
+            'license',
             'cfg',
             'properties'
         ].includes(entry.name.split('.').pop()?.toLowerCase() ?? '');
