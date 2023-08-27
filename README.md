@@ -20,6 +20,7 @@ Drag and drop a directory onto the window.
     * Video
     * Code
     * Zip Archive
+    * Markdown
 * Advanced
     * Executable (Icon)
 * Games
@@ -48,7 +49,6 @@ Drag and drop a directory onto the window.
 
 ## TODO
 
-* Github pages
 * Dynamically load viewers
     * Instead of having every viewer loaded at once, have a list of file extensions and their viewers they go with then when a file is detected with one of those exensions load that viewer.
 
@@ -60,6 +60,7 @@ Drag and drop a directory onto the window.
 [highlight.js](https://highlightjs.org/) for code highlighting.  
 [three.js](https://threejs.org/), an easy to use 3D library.  
 [Zod](https://zod.dev/) for schema validation.  
+[Marked](https://marked.js.org/) for markdown rendering.  
 
 ## Huge Help
 

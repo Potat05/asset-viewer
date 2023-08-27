@@ -159,6 +159,9 @@ createNewViewer(CodeViewer);
 import ZipViewer from "./viewers/basic/zip";
 createNewViewer(ZipViewer);
 
+import MarkdownViewer from "./viewers/basic/markdown";
+createNewViewer(MarkdownViewer);
+
 
 
 import ExecutableViewer from "./viewers/advanced/executable";
