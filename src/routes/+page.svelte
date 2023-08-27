@@ -6,7 +6,7 @@
     import { tabsStore } from "./stores";
     import TabListItem from "../components/TabListItem.svelte";
     import TabContentItem from "../components/TabContentItem.svelte";
-    import TextViewer from "../components/viewers/basic/Text.svelte";
+    import Viewer_Markdown from "../components/viewers/basic/Markdown.svelte";
 
 
 
@@ -31,10 +31,6 @@
 
 
 
-        const infoText = `Drag and drop a directory onto the page.`;
-
-
-
         const tabListItem = new TabListItem({
             target: tabsListContainer,
             props: {
@@ -53,11 +49,11 @@
             }
         });
 
-        new TextViewer({
+        new Viewer_Markdown({
             // @ts-ignore
             target: tabContentItem.slot,
             props: {
-                entry: new fsUtils.fsFile_Blob(new Blob([ infoText ]), 'information.txt', null)
+                entry: new fsUtils.fsFile_Fetch('/docs/usage.md', null)
             }
         });
 
