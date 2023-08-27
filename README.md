@@ -42,6 +42,9 @@ Drag and drop a directory onto the window.
     * (I don't know anything about Unity so fill this out later.)
 * Executable (PE)
     * x86 disassembler with [iced-x86](https://www.npmjs.com/package/iced-x86)
+* Midi sequence
+    * Player & visualization
+    * Soundfont 2
 
 ## TODO
 
