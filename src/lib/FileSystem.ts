@@ -244,6 +244,33 @@ export namespace fsUtils {
         
     }
 
+    export class fsFile_Fetch implements fsFile {
+        public viewer: null | Viewer = null;
+
+        public readonly type: fsEntry.File = fsEntry.File;
+        public readonly name: string;
+        public parent: fsDirectory | null;
+        private url: string;
+        private cachedBlob: Blob | null = null;
+
+        constructor(url: string, parent: fsDirectory | null, overwriteName?: string) {
+            this.url = url;
+            this.name = overwriteName ?? this.url.slice(this.url.lastIndexOf('/') + 1);
+            this.parent = parent;
+        }
+
+        public async blob(): Promise<Blob> {
+            if(this.cachedBlob == null) {
+                this.cachedBlob = await (await fetch(this.url)).blob();
+            }
+            return this.cachedBlob;
+        }
+
+        public async buffer(): Promise<ArrayBuffer> {
+            return await (await this.blob()).arrayBuffer();
+        }
+        
+    }
 
 
     export class fsDirectory_Container implements fsDirectory {
