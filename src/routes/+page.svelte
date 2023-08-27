@@ -27,7 +27,7 @@
             contentContainer: tabsContentContainer,
             listItems: tabsListItems,
             contentItems: tabsContentItems
-        })
+        });
 
 
 
