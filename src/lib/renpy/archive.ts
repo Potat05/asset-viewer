@@ -121,6 +121,15 @@ export class ArchiveReader extends DataReader {
 
     }
 
+    decodeWithKey(value: number): number {
+        if(value <= 0xFFFFFFFF) {
+            return value ^ this.key;
+        } else {
+            // The xor only includes the first 32 bits, The rest is ignored.
+            return Number(BigInt(value) ^ BigInt(this.key));
+        }
+    }
+
 
 
     /**
@@ -168,7 +177,9 @@ export class ArchiveReader extends DataReader {
         await this.load(this.blobDataLeft);
         const buffer = this.buffer;
         const decompressed = Pako.inflate(buffer);
-        const depickled = Depickler.depickle(decompressed);
+        const depickled = Depickler.depickle(decompressed, {
+            downcastLongs: true
+        });
 
 
 
@@ -179,8 +190,8 @@ export class ArchiveReader extends DataReader {
 
             const sections: Section[] = fileDatas.map(fileData => {
                 return {
-                    offset: fileData[0] ^ this.key,
-                    length: fileData[1] ^ this.key
+                    offset: this.decodeWithKey(fileData[0]),
+                    length: this.decodeWithKey(fileData[1])
                 }
             });
 
