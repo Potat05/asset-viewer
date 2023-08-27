@@ -22,7 +22,6 @@ LANGS['svelte'] = lang_xml;
 
 import lang_markdown from "svelte-highlight/languages/markdown";
 LANGS['md'] = lang_markdown;
-LANGS['MD'] = lang_markdown;
 
 import lang_python from "svelte-highlight/languages/python";
 LANGS['py'] = lang_python;
@@ -54,7 +53,7 @@ const viewer: Viewer = {
 
         if(entry.type == fsEntry.File) {
 
-            const lang = LANGS[entry.name.split('.').pop() ?? ''];
+            const lang = LANGS[entry.name.split('.').pop()?.toLowerCase() ?? ''];
 
             if(lang == undefined) {
                 throw new Error('Catastrophic error that should never happen, language does not exist but validation passed?');

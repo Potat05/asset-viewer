@@ -15,7 +15,8 @@ const viewer: Viewer = {
             'npmrc',
             'license',
             'cfg',
-            'properties'
+            'properties',
+            'url'
         ].includes(entry.name.split('.').pop()?.toLowerCase() ?? '');
     },
     createViewer: async (entry, target) => {
