@@ -308,14 +308,32 @@ class Memo {
 
 
 
+
+
+interface DepicklerOptions {
+    /**
+     * @default false
+     */
+    debug: boolean;
+    /**
+     * @default false
+     */
+    downcastLongs: boolean;
+}
+
+
+
 export class Depickler extends DataReader {
 
     debug: boolean;
     operTime: {[key in Opcodes]?: number} = {};
 
-    constructor(data?: ArrayBuffer | DataReader, debug: boolean = false) {
+    downcastLongs: boolean;
+
+    constructor(data?: ArrayBuffer | DataReader, options: Partial<DepicklerOptions> = {}) {
         super(data);
-        this.debug = debug;
+        this.debug = options.debug ?? false;
+        this.downcastLongs = options.downcastLongs ?? false;
     }
 
 
@@ -477,7 +495,8 @@ export class Depickler extends DataReader {
             case Opcodes.LONG1: {
 
                 const length = this.readNumber('Uint8');
-                this.stack.append(this.readCustomNumber(length, true));
+                const num = this.readBigCustomNumber(length, true);
+                this.stack.append(this.downcastLongs ? Number(num) : num);
 
                 break; }
 
@@ -655,9 +674,9 @@ export class Depickler extends DataReader {
 
     }
 
-    static depickle(data: ArrayBuffer, debug: boolean = false) {
+    static depickle(data: ArrayBuffer, options: Partial<DepicklerOptions> = {}) {
 
-        const out = new Depickler(data, debug).readPickle();
+        const out = new Depickler(data, options).readPickle();
 
         return out;
 
