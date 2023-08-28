@@ -12,6 +12,13 @@
     .markdown-container {
         background-color: white;
         color: black;
+        overflow-x: auto;
+        width: 100vw;
+    }
+
+    .markdown-scroll {
+        display: inline-block;
+        max-width: 100vw;
     }
 
 </style>
@@ -21,7 +28,9 @@
     {#await blob.text() then text}
 
         <div class="markdown-container">
-            {@html marked.parse(text)}
+            <div class="markdown-scroll">
+                {@html marked.parse(text)}
+            </div>
         </div>
 
     {/await}
