@@ -61,6 +61,13 @@
         border-radius: 5px;
     }
 
+    .markdown-container :global(code) {
+        background-color: black;
+        color: white;
+        padding: 5px;
+        border-radius: 5px;
+    }
+
     .markdown-container :global(a) {
         color: #2f81f7;
         text-decoration-color: #2f81f7;
