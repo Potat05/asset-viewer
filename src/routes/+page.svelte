@@ -7,6 +7,8 @@
     import TabListItem from "../components/TabListItem.svelte";
     import TabContentItem from "../components/TabContentItem.svelte";
     import Viewer_Markdown from "../components/viewers/basic/Markdown.svelte";
+    import { findViewers, openViewer } from "$lib/Viewer";
+    import { fsDirectory_DataTransferDirectory } from "$lib/DataTransferDirectory";
 
 
 
@@ -75,17 +77,8 @@
 
 
 
-    function dropEntry(ev: { detail: fsFile | fsDirectory; }) {
-
-        const dir = ev.detail;
-
-        if(dir.type != fsEntry.Directory) {
-            console.warn('Drop entry must be directory.');
-            return;
-        }
-
-
-
+    function openDirectory(dir: fsDirectory) {
+        
         const tabListItem = new TabListItem({
             target: tabsListContainer,
             props: {
@@ -109,12 +102,42 @@
             // @ts-ignore
             target: tabContentItem.slot,
             props: {
-                dir
+                dir: dir
             }
         });
 
         tabsListItems.push(tabListItem);
         tabsContentItems.push(tabContentItem);
+
+    }
+
+
+
+    async function dropEntry(ev: { detail: fsFile | fsDirectory; }) {
+
+        let entry = ev.detail;
+
+        if(entry.type == fsEntry.Directory) {
+
+            openDirectory(entry);
+
+        } else if(entry.type == fsEntry.File) {
+
+            await findViewers(entry);
+
+            if(!entry.viewer) {
+                throw new Error('Dragged viewer has no viewer.');
+            }
+
+            entry = await entry.viewer.transform?.(entry) ?? entry;
+
+            if(entry.type == fsEntry.Directory) {
+                openDirectory(entry);
+            } else if(entry.type == fsEntry.File) {
+                openViewer(entry);
+            }
+
+        }
 
     }
 
