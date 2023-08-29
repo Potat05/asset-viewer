@@ -22,7 +22,7 @@
 
 
 
-    onMount(() => {
+    onMount(async () => {
 
         tabsStore.set({
             listContainer: tabsListContainer,
@@ -33,34 +33,9 @@
 
 
 
-        const tabListItem = new TabListItem({
-            target: tabsListContainer,
-            props: {
-                name: 'Information',
-                onSelect,
-                selected: true
-            }
-        });
-
-        const tabContentItem = new TabContentItem({
-            target: tabsContentContainer,
-            props: {
-                // @ts-ignore
-                id: tabListItem.id,
-                selected: true
-            }
-        });
-
-        new Viewer_Markdown({
-            // @ts-ignore
-            target: tabContentItem.slot,
-            props: {
-                entry: new fsUtils.fsFile_Fetch('/docs/usage.md', null)
-            }
-        });
-
-        tabsListItems.push(tabListItem);
-        tabsContentItems.push(tabContentItem);
+        const infoEntry = new fsUtils.fsFile_Fetch('/docs/usage.md', null);
+        await findViewers(infoEntry);
+        openViewer(infoEntry);
 
     });
 
