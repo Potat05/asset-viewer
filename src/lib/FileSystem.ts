@@ -58,16 +58,14 @@ export namespace fsUtils {
      */
     export function getPath(entry: fsFile | fsDirectory): string {
 
-        // TODO - This is very broken please fix this.
-        // getPath on a file with no parent breaks.
-        // This does ignore the root directory name.
+        let path = entry.name;
 
-        if(entry.parent == null) {
-            return '';
-        } else {
-            // TODO: Refactor, fixPath should not be used here.
-            return fixPath(`${getPath(entry.parent)}/${entry.name}`);
+        while(entry.parent != null) {
+            entry = entry.parent;
+            path = `${entry.name}/${path}`;
         }
+
+        return path;
 
     }
 
