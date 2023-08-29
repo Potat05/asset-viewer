@@ -58,6 +58,8 @@ export namespace fsUtils {
      */
     export function getPath(entry: fsFile | fsDirectory): string {
 
+        // TODO - This is very broken please fix this.
+        // getPath on a file with no parent breaks.
         // This does ignore the root directory name.
 
         if(entry.parent == null) {
