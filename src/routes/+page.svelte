@@ -115,7 +115,7 @@
 
     async function dropEntry(ev: { detail: fsFile | fsDirectory; }) {
 
-        let entry = ev.detail;
+        const entry = ev.detail;
 
         if(entry.type == fsEntry.Directory) {
 
@@ -129,12 +129,14 @@
                 throw new Error('Dragged viewer has no viewer.');
             }
 
-            entry = await entry.viewer.transform?.(entry) ?? entry;
+            const newEntry = await entry.viewer.transform?.(entry) ?? entry;
+            newEntry.name = entry.name;
+            newEntry.parent = entry.parent;
 
-            if(entry.type == fsEntry.Directory) {
-                openDirectory(entry);
-            } else if(entry.type == fsEntry.File) {
-                openViewer(entry);
+            if(newEntry.type == fsEntry.Directory) {
+                openDirectory(newEntry);
+            } else if(newEntry.type == fsEntry.File) {
+                openViewer(newEntry);
             }
 
         }
