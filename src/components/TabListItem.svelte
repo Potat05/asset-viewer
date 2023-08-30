@@ -1,10 +1,9 @@
 <script lang="ts">
-    import { Utils } from "$lib/Utils";
     import { onMount } from "svelte";
 
 
 
-    export let id: number = Utils.getID();
+    export let id: number;
 
     export let name: string;
     export let icon: string | null = null;

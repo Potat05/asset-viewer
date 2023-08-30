@@ -6,7 +6,7 @@
 
     export let selected: boolean = false;
 
-    export let slot: HTMLDivElement | undefined = undefined;
+    export let slot: HTMLDivElement | null = null;
 
 </script>
 

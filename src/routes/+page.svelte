@@ -3,86 +3,46 @@
     import { onMount } from "svelte";
     import Directory from "../components/Directory.svelte";
     import Dropzone from "../components/Dropzone.svelte";
-    import { tabsStore } from "./stores";
-    import TabListItem from "../components/TabListItem.svelte";
-    import TabContentItem from "../components/TabContentItem.svelte";
     import Viewer_Markdown from "../components/viewers/basic/Markdown.svelte";
     import { findViewers, openViewer } from "$lib/Viewer";
-    import { fsDirectory_DataTransferDirectory } from "$lib/DataTransferDirectory";
+    import { TabsStore, addTab } from "$lib/Tabs";
 
 
 
     let tabsListContainer: HTMLDivElement;
     let tabsContentContainer: HTMLDivElement;
 
-    let tabsListItems: TabListItem[] = [];
-    let tabsContentItems: TabContentItem[] = [];
-
-
-
 
 
     onMount(async () => {
 
-        tabsStore.set({
+        TabsStore.set({
             listContainer: tabsListContainer,
             contentContainer: tabsContentContainer,
-            listItems: tabsListItems,
-            contentItems: tabsContentItems
+            items: []
         });
 
 
 
-        const infoEntry = new fsUtils.fsFile_Fetch('/docs/usage.md', null);
-        await findViewers(infoEntry);
-        openViewer(infoEntry);
+        new Viewer_Markdown({
+            target: addTab('Information', '/asset-viewer/bootstrap-icons/info-circle.svg'),
+            props: {
+                entry: new fsUtils.fsFile_Fetch('/docs/usage.md', null)
+            }
+        });
 
     });
 
 
 
-    function onSelect(id: number) {
-        tabsListItems.forEach(tabListItem => {
-            tabListItem.selected = (tabListItem.id == id);
-        });
-        tabsContentItems.forEach(tabContentItem => {
-            tabContentItem.selected = (tabContentItem.id == id);
-        });
-    }
-
-
-
     function openDirectory(dir: fsDirectory) {
-        
-        const tabListItem = new TabListItem({
-            target: tabsListContainer,
-            props: {
-                name: dir.name,
-                icon: '/asset-viewer/bootstrap-icons/folder-fill.svg',
-                onSelect,
-                selected: true
-            }
-        });
-
-        const tabContentItem = new TabContentItem({
-            target: tabsContentContainer,
-            props: {
-                // @ts-ignore
-                id: tabListItem.id,
-                selected: true
-            }
-        });
 
         new Directory({
-            // @ts-ignore
-            target: tabContentItem.slot,
+            target: addTab(dir.name, '/asset-viewer/bootstrap-icons/folder-fill.svg'),
             props: {
-                dir: dir
+                dir
             }
         });
-
-        tabsListItems.push(tabListItem);
-        tabsContentItems.push(tabContentItem);
 
     }
 

@@ -1,9 +1,5 @@
 
 import { fsUtils, type fsDirectory, type fsFile } from "$lib/FileSystem";
-import TabListItem from "../components/TabListItem.svelte";
-import TabContentItem from "../components/TabContentItem.svelte";
-import { tabsStore } from "../routes/stores";
-
 
 
 
@@ -65,24 +61,6 @@ export async function findViewers(entry: fsFile | fsDirectory) {
 
 
 
-let tabs: {
-    listContainer: HTMLDivElement;
-    contentContainer: HTMLDivElement;
-    listItems: TabListItem[]
-    contentItems: TabContentItem[];
-};
-
-tabsStore.subscribe(t => tabs = t);
-
-function onSelect(id: number) {
-    tabs.listItems.forEach(tabListItem => {
-        tabListItem.selected = (tabListItem.id == id);
-    });
-    tabs.contentItems.forEach(tabContentItem => {
-        tabContentItem.selected = (tabContentItem.id == id);
-    });
-}
-
 export async function openViewer(entry: fsFile | fsDirectory) {
     
     const viewer = entry.viewer;
@@ -93,34 +71,7 @@ export async function openViewer(entry: fsFile | fsDirectory) {
     
         console.debug(`Opening viewer for "${fsUtils.getPath(entry)}"`, entry);
 
-
-
-
-        
-        const tabListItem = new TabListItem({
-            target: tabs.listContainer,
-            props: {
-                name: entry.name,
-                icon: viewer.getIcon ? await viewer.getIcon(entry) : null,
-                onSelect,
-                selected: true
-            }
-        });
-
-        const tabContentItem = new TabContentItem({
-            target: tabs.contentContainer,
-            props: {
-                // @ts-ignore
-                id: tabListItem.id,
-                selected: true
-            }
-        });
-
-        // @ts-ignore
-        viewer.createViewer(entry, tabContentItem.slot);
-
-        tabs.listItems.push(tabListItem);
-        tabs.contentItems.push(tabContentItem);
+        viewer.createViewer(entry, addTab(entry.name, viewer.getIcon ? await viewer.getIcon(entry) : null));
 
     }
 
@@ -181,4 +132,5 @@ import MinecraftNBTViewer from "./viewers/minecraft/nbt";
 createNewViewer(MinecraftNBTViewer);
 
 import MinecraftWorldViewer from "./viewers/minecraft/world";
+import { addTab } from "./Tabs";
 createNewViewer(MinecraftWorldViewer);
