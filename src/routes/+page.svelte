@@ -19,7 +19,8 @@
         TabsStore.set({
             listContainer: tabsListContainer,
             contentContainer: tabsContentContainer,
-            items: []
+            items: [],
+            selected: null
         });
 
 

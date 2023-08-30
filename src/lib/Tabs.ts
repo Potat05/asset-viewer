@@ -14,6 +14,7 @@ type Tabs = {
         listItem: TabListItem;
         contentItem: TabContentItem;
     }[];
+    selected: number | null;
 };
 
 
@@ -27,11 +28,28 @@ TabsStore.subscribe(t => tabs = t);
 
 
 
-function selectTab(id: number) {
+function selectTab(id: number | null) {
+    tabs.selected = id;
     tabs.items.forEach(item => {
-        item.listItem.selected = (item.id == id);
-        item.contentItem.selected = (item.id == id);
+        item.listItem.selected = (item.id == tabs.selected);
+        item.contentItem.selected = (item.id == tabs.selected);
     });
+}
+
+function closeTab(id: number) {
+    tabs.items = tabs.items.filter(item => {
+        if(item.id != id) return true;
+
+        item.listItem.$destroy();
+        item.contentItem.$destroy();
+
+        return false;
+    });
+
+    if(tabs.selected == id) {
+        // TODO: Don't select first tab, Select the tab before the one that was deleted.
+        selectTab(tabs.items[0].id ?? null)
+    }
 }
 
 
@@ -39,15 +57,23 @@ function selectTab(id: number) {
 /**
  * @returns Target to add tab content to.  
  */
-export function addTab(name: string, icon: string | null): HTMLDivElement {
+export function addTab(name: string, icon: string | null, autoSelect: boolean = true): HTMLDivElement {
 
     const id = Utils.getID();
 
     const listItem = new TabListItem({
         target: tabs.listContainer,
         props: {
-            name, icon, id, onSelect: selectTab
+            name, icon, id
         }
+    });
+
+    listItem.$on('tab_select', ev => {
+        selectTab(ev.detail);
+    });
+
+    listItem.$on('tab_close', ev => {
+        closeTab(ev.detail);
     });
 
     const contentItem = new TabContentItem({
@@ -59,7 +85,9 @@ export function addTab(name: string, icon: string | null): HTMLDivElement {
 
     tabs.items.push({ listItem, contentItem, id });
 
-    selectTab(id);
+    if(autoSelect || tabs.selected == null) {
+        selectTab(id);
+    }
 
     // @ts-ignore
     return contentItem.slot;

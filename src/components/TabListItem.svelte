@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { createEventDispatcher } from "svelte";
+    const dispatch = createEventDispatcher();
 
 
 
@@ -9,14 +10,6 @@
     export let icon: string | null = null;
 
     export let selected: boolean = false;
-
-    export let onSelect: (id: number) => void;
-
-    onMount(() => {
-        if(selected) {
-            onSelect(id);
-        }
-    })
 
 </script>
 
@@ -30,13 +23,29 @@
         border-bottom: 2px solid black;
 
         display: flex;
+        align-items: center;
 
         cursor: pointer;
     }
 
-    img {
+    .tab-icon {
         margin-right: 10px;
         max-height: 18px;
+        padding: 2px;
+    }
+
+    .tab-remove-container {
+        margin-left: 10px;
+        max-height: 14px;
+    }
+
+    .tab-remove-container:hover {
+        background-color: black;
+        outline: 2px #111 solid;
+    }
+
+    .tab-remove-icon {
+        max-height: 14px;
     }
 
     .selected {
@@ -50,13 +59,31 @@
 <div
     class="tab-list-item"
     class:selected
-    on:click={() => onSelect(id)}
+    on:click={() => dispatch('tab_select', id)}
 >
 
     {#if icon}
-        <img src={icon} alt="Tab List Icon">
+        <img
+            class="tab-icon"
+            src={icon}
+            alt="Tab List Icon"
+        >
     {/if}
 
     {name}
+
+    <div
+        class="tab-remove-container"
+        on:click={ev => {
+            ev.stopPropagation();
+            dispatch('tab_close', id);
+        }}
+    >
+        <img
+            class="tab-remove-icon"
+            src="/asset-viewer/bootstrap-icons/x-lg.svg"
+            alt="Remove Tab Icon"
+        >
+    </div>
 
 </div>
