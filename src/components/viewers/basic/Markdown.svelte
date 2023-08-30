@@ -62,7 +62,6 @@
     }
 
     .markdown-container :global(code) {
-        background-color: black;
         color: white;
         padding: 5px;
         border-radius: 5px;
