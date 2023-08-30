@@ -27,7 +27,7 @@
         new Viewer_Markdown({
             target: addTab('Information', '/asset-viewer/bootstrap-icons/info-circle.svg'),
             props: {
-                entry: new fsUtils.fsFile_Fetch('/docs/usage.md', null)
+                entry: new fsUtils.fsFile_Fetch('/asset-viewer/docs/usage.md', null)
             }
         });
 
