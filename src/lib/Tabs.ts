@@ -29,6 +29,11 @@ TabsStore.subscribe(t => tabs = t);
 
 
 function selectTab(id: number | null) {
+
+    if(tabs.items.every(item => item.id != id)) {
+        throw new Error('Attempted to select invalid tab.');
+    }
+
     tabs.selected = id;
     tabs.items.forEach(item => {
         item.listItem.selected = (item.id == tabs.selected);
@@ -37,19 +42,41 @@ function selectTab(id: number | null) {
 }
 
 function closeTab(id: number) {
-    tabs.items = tabs.items.filter(item => {
-        if(item.id != id) return true;
 
-        item.listItem.$destroy();
-        item.contentItem.$destroy();
+    const closeIndex = tabs.items.findIndex(item => item.id == id);
 
-        return false;
-    });
+    if(closeIndex == -1) {
+        throw new Error('Attempted to close invalid tab.');
+    }
 
     if(tabs.selected == id) {
-        // TODO: Don't select first tab, Select the tab before the one that was deleted.
-        selectTab(tabs.items[0].id ?? null)
+        selectTab(tabs.items[closeIndex - 1].id);
     }
+
+    const removed = tabs.items.splice(closeIndex, 1);
+
+    removed.forEach(rem => {
+        rem.listItem.$destroy();
+        rem.contentItem.$destroy();
+    });
+
+}
+
+
+
+
+
+interface AddTabOptions {
+    name: string;
+    icon: string | null;
+    /**
+     * @default true  
+     */
+    autoSelect?: boolean;
+    /**
+     * @default true  
+     */
+    closable?: boolean;
 }
 
 
@@ -57,14 +84,14 @@ function closeTab(id: number) {
 /**
  * @returns Target to add tab content to.  
  */
-export function addTab(name: string, icon: string | null, autoSelect: boolean = true): HTMLDivElement {
+export function addTab(options: AddTabOptions): HTMLDivElement {
 
     const id = Utils.getID();
 
     const listItem = new TabListItem({
         target: tabs.listContainer,
         props: {
-            name, icon, id
+            name: options.name, icon: options.icon, id, closable: (options.closable ?? true)
         }
     });
 
@@ -85,12 +112,17 @@ export function addTab(name: string, icon: string | null, autoSelect: boolean = 
 
     tabs.items.push({ listItem, contentItem, id });
 
-    if(autoSelect || tabs.selected == null) {
+    if((options.autoSelect ?? true) || tabs.selected == null) {
         selectTab(id);
     }
 
-    // @ts-ignore
-    return contentItem.slot;
+    const slot = contentItem.slot;
+
+    if(!slot) {
+        throw new Error('Failed to create slot for tab.');
+    }
+
+    return slot;
 
 }
 

@@ -26,7 +26,11 @@
 
 
         new Viewer_Markdown({
-            target: addTab('Information', '/asset-viewer/bootstrap-icons/info-circle.svg'),
+            target: addTab({
+                name: 'Information',
+                icon: '/asset-viewer/bootstrap-icons/info-circle.svg',
+                closable: false
+            }),
             props: {
                 entry: new fsUtils.fsFile_Fetch('/asset-viewer/docs/usage.md', null)
             }
@@ -39,7 +43,10 @@
     function openDirectory(dir: fsDirectory) {
 
         new Directory({
-            target: addTab(dir.name, '/asset-viewer/bootstrap-icons/folder-fill.svg'),
+            target: addTab({
+                name: dir.name,
+                icon: '/asset-viewer/bootstrap-icons/folder-fill.svg'
+            }),
             props: {
                 dir
             }

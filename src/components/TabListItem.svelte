@@ -11,6 +11,8 @@
 
     export let selected: boolean = false;
 
+    export let closable: boolean = false;
+
 </script>
 
 <svelte:options accessors/>
@@ -72,18 +74,20 @@
 
     {name}
 
-    <div
-        class="tab-remove-container"
-        on:click={ev => {
-            ev.stopPropagation();
-            dispatch('tab_close', id);
-        }}
-    >
-        <img
-            class="tab-remove-icon"
-            src="/asset-viewer/bootstrap-icons/x-lg.svg"
-            alt="Remove Tab Icon"
+    {#if closable}
+        <div
+            class="tab-remove-container"
+            on:click={ev => {
+                ev.stopPropagation();
+                dispatch('tab_close', id);
+            }}
         >
-    </div>
+            <img
+                class="tab-remove-icon"
+                src="/asset-viewer/bootstrap-icons/x-lg.svg"
+                alt="Remove Tab Icon"
+            >
+        </div>
+    {/if}
 
 </div>

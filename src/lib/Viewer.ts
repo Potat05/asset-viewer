@@ -71,7 +71,10 @@ export async function openViewer(entry: fsFile | fsDirectory) {
     
         console.debug(`Opening viewer for "${fsUtils.getPath(entry)}"`, entry);
 
-        viewer.createViewer(entry, addTab(entry.name, viewer.getIcon ? await viewer.getIcon(entry) : null));
+        viewer.createViewer(entry, addTab({
+            name: entry.name,
+            icon: viewer.getIcon ? await viewer.getIcon(entry) : null
+        }));
 
     }
 
