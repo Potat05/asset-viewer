@@ -9,7 +9,8 @@ const viewer: Viewer = {
         return entry.type == fsEntry.File && [
             'mp4',
             'mov',
-            'webm'
+            'webm',
+            'mkv'
         ].includes(entry.name.split('.').pop() ?? '');
     },
     createViewer: async (entry, target) => {
