@@ -157,7 +157,8 @@ export namespace fsUtils {
      */
     export async function transform<To extends fsFile | fsDirectory | null>(entry: fsFile | fsDirectory, to: To): Promise<To> {
         if(entry.parent == null) {
-            throw new Error('Could not transform, Entry has no parent.');
+            console.warn('Could not transform, Entry has no parent.');
+            return to;
         }
 
         if(to == null) {
