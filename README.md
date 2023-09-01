@@ -33,6 +33,8 @@ Drag and drop a directory onto the window.
 
 ## TODO Viewers
 
+* Basic
+    * Zip64 Archive Support
 * Minecraft
     * World with resource pack
 * Source engine
