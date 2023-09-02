@@ -137,3 +137,8 @@ createNewViewer(MinecraftNBTViewer);
 import MinecraftWorldViewer from "./viewers/minecraft/world";
 import { addTab } from "./Tabs";
 createNewViewer(MinecraftWorldViewer);
+
+
+
+import MidiMidiViewer from "./viewers/midi/midi";
+createNewViewer(MidiMidiViewer);
