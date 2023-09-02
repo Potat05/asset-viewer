@@ -1,6 +1,7 @@
 
 import { DataReader } from "$lib/DataReader";
-import { NumberUtils } from "$lib/NumberUtils";
+
+
 
 
 
@@ -14,26 +15,6 @@ enum MIDI_EVENT {
     VoicePitchBlend = 0xE,
     SystemExclusive = 0xF
 }
-
-enum MIDI_META_EVENT {
-    SequenceNumber = 0x00,
-    TextEvent = 0x01,
-    CopyrightNotice = 0x02,
-    SequenceTrackName = 0x03,
-    InstrumentName = 0x04,
-    Lyric = 0x05,
-    Marker = 0x06,
-    CuePoint = 0x07,
-    MIDIChannelPrefix = 0x20,
-    EndOfTrack = 0x2F,
-    SetTempo = 0x51,
-    SMPTEOffset = 0x54,
-    TimeSignature = 0x58,
-    KeySignature = 0x59,
-    SequencerSpecificMetaEvent = 0x7F
-}
-
-
 
 interface MidiEvents {
     [MIDI_EVENT.VoiceNoteOff]: {
@@ -66,17 +47,117 @@ interface MidiEvents {
     };
 }
 
-type MidiEvent = {
+type _MidiEventsWithType = {
     [Type in MIDI_EVENT]: {
         type: Type;
-    } & MidiEvents[Type]
-} & {
+    } & MidiEvents[Type];
+}
+
+type MidiEvent = _MidiEventsWithType[keyof _MidiEventsWithType] & {
     meta: false;
     dt: number;
     channel: number;
 }
 
 
+
+enum MIDI_META_EVENT {
+    SequenceNumber = 0x00,
+    TextEvent = 0x01,
+    CopyrightNotice = 0x02,
+    SequenceTrackName = 0x03,
+    InstrumentName = 0x04,
+    Lyric = 0x05,
+    Marker = 0x06,
+    CuePoint = 0x07,
+    MIDIChannelPrefix = 0x20,
+    EndOfTrack = 0x2F,
+    SetTempo = 0x51,
+    SMPTEOffset = 0x54,
+    TimeSignature = 0x58,
+    KeySignature = 0x59,
+    SequencerSpecificMetaEvent = 0x7F
+}
+
+interface MidiMetaEvents {
+    [MIDI_META_EVENT.SequenceNumber]: {
+        sequence: number;
+    };
+    [MIDI_META_EVENT.TextEvent]: {
+        text: string;
+    };
+    [MIDI_META_EVENT.CopyrightNotice]: {
+        copyright: string;
+    };
+    [MIDI_META_EVENT.SequenceTrackName]: {
+        name: string;
+    };
+    [MIDI_META_EVENT.InstrumentName]: {
+        instrument: string;
+    };
+    [MIDI_META_EVENT.Lyric]: {
+        lyric: string;
+    };
+    [MIDI_META_EVENT.Marker]: {
+        marker: string;
+    };
+    [MIDI_META_EVENT.CuePoint]: {
+        description: string;
+    };
+    [MIDI_META_EVENT.MIDIChannelPrefix]: {
+        channel: number;
+    };
+    [MIDI_META_EVENT.EndOfTrack]: {
+    };
+    [MIDI_META_EVENT.SetTempo]: {
+        tempo: number;
+    };
+    [MIDI_META_EVENT.SMPTEOffset]: {
+        hour: number;
+        minute: number;
+        second: number;
+        frame: number;
+        fractionalFrame: number;
+    };
+    [MIDI_META_EVENT.TimeSignature]: {
+        numerator: number;
+        denominator: number;
+        clocks: number;
+        notes: number;
+    };
+    [MIDI_META_EVENT.KeySignature]: {
+        signature: number;
+        key: 'major' | 'minor';
+    };
+    [MIDI_META_EVENT.SequencerSpecificMetaEvent]: {
+        data: ArrayBuffer;
+    };
+}
+
+type _MidiMetaEventsWithType = {
+    [Type in MIDI_META_EVENT]: {
+        type: Type;
+    } & MidiMetaEvents[Type];
+}
+
+type MidiMetaEvent = _MidiMetaEventsWithType[keyof _MidiMetaEventsWithType] & {
+    meta: true;
+    dt: number;
+}
+
+
+
+enum MIDI_FORMAT {
+    Single = 0,
+    Simultaneous = 1,
+    Independent = 2
+}
+
+type MidiHeader = {
+    format: MIDI_FORMAT;
+    numTracks: number;
+    timeDivision: number;
+}
 
 
 
@@ -98,12 +179,18 @@ class MidiReader extends DataReader {
         return num;
     }
 
-    readHeader() {
+    readHeader(): MidiHeader {
         this.assertMagic('MThd');
         this.assertMagic(6, 'Uint32'); // Header length must always be 6 bytes.
 
+        const format = this.readNumber('Uint16');
+
+        if(!(format in MIDI_FORMAT)) {
+            throw new Error(`MIDI header invalid format.`);
+        }
+
         return {
-            format: this.readNumber('Uint16'),
+            format,
             numTracks: this.readNumber('Uint16'),
             timeDivision: this.readNumber('Uint16')
         }
@@ -150,7 +237,7 @@ class MidiReader extends DataReader {
         return ({ meta: false, dt, type, channel, ...data }) as unknown as MidiEvent;
     }
 
-    readMetaEvent(dt: number) {
+    readMetaEvent(dt: number): MidiMetaEvent {
         const type = this.readNumber('Uint8');
         const length = this.readVLQ();
 
@@ -159,13 +246,44 @@ class MidiReader extends DataReader {
         let data;
 
         switch(type) {
+            case MIDI_META_EVENT.SequenceNumber: data = {
+                sequence: this.readNumber('Uint16')
+            }; break;
+            case MIDI_META_EVENT.TextEvent: data = {
+                text: this.readString(length, 'utf-8')
+            }; break;
+            case MIDI_META_EVENT.CopyrightNotice: data = {
+                copyright: this.readString(length, 'utf-8')
+            }; break;
             case MIDI_META_EVENT.SequenceTrackName: data = {
                 name: this.readString(length, 'utf-8')
+            }; break;
+            case MIDI_META_EVENT.InstrumentName: data = {
+                instrument: this.readString(length, 'utf-8')
+            }; break;
+            case MIDI_META_EVENT.Lyric: data = {
+                lyric: this.readString(length, 'utf-8')
+            }; break;
+            case MIDI_META_EVENT.Marker: data = {
+                marker: this.readString(length, 'utf-8')
+            }; break;
+            case MIDI_META_EVENT.CuePoint: data = {
+                description: this.readString(length, 'utf-8')
+            }; break;
+            case MIDI_META_EVENT.MIDIChannelPrefix: data = {
+                channel: this.readNumber('Uint8')
             }; break;
             case MIDI_META_EVENT.EndOfTrack: data = {
             }; break;
             case MIDI_META_EVENT.SetTempo: data = {
                 tempo: this.readCustomNumber(3, false)
+            }; break;
+            case MIDI_META_EVENT.SMPTEOffset: data = {
+                hour: this.readNumber('Uint8'),
+                minute: this.readNumber('Uint8'),
+                second: this.readNumber('Uint8'),
+                frame: this.readNumber('Uint8'),
+                fractionalFrame: this.readNumber('Uint8')
             }; break;
             case MIDI_META_EVENT.TimeSignature: data = {
                 numerator: this.readNumber('Uint8'),
@@ -173,6 +291,16 @@ class MidiReader extends DataReader {
                 clocks: this.readNumber('Uint8'),
                 notes: this.readNumber('Uint8')
             }; break;
+            case MIDI_META_EVENT.KeySignature: data = {
+                signature: this.readNumber('Int8'),
+                key: this.readNumber('Uint8') == 0 ? 'major' : 'minor'
+            }; break;
+            case MIDI_META_EVENT.SequencerSpecificMetaEvent: {
+                console.log('MIDI Skipped sequencer specific meta event.');
+                data = {
+                    data: this.readBuffer(length)
+                }
+                break; }
             default: data = {
                 data: this.readBuffer(length)
             }; break;
@@ -185,17 +313,17 @@ class MidiReader extends DataReader {
             throw new Error(`Meta event ${MIDI_META_EVENT[type]} length is too small for data.`);
         }
 
-        return ({ meta: true, dt, type, ...data, typeName: MIDI_META_EVENT[type] });
+        return ({ meta: true, dt, type, ...data }) as unknown as MidiMetaEvent;
 
     }
 
-    readTrack() {
+    readTrack(): (MidiEvent | MidiMetaEvent)[] {
         this.assertMagic('MTrk');
         const length = this.readNumber('Uint32');
 
         const start = this.pointer;
 
-        let events = [];
+        let events: (MidiEvent | MidiMetaEvent)[] = [];
 
         let lastStatus: number = 0;
 
@@ -223,7 +351,7 @@ class MidiReader extends DataReader {
 
 
 
-            if(event.meta == true && event.type == MIDI_META_EVENT.EndOfTrack) {
+            if(event.meta && event.type == MIDI_META_EVENT.EndOfTrack) {
                 break;
             }
 
@@ -248,8 +376,10 @@ export function parseMidi(buffer: ArrayBuffer) {
 
     const tracks = reader.readArray(reader.readTrack, header.numTracks);
 
-    console.log(header);
-    console.log(tracks);
+    return {
+        ...header,
+        tracks
+    }
 
 }
 
