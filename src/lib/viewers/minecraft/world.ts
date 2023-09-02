@@ -9,7 +9,10 @@ const viewer: Viewer = {
         if(entry.type != fsEntry.Directory) return false;
 
         if(entry.parent != null) {
-            if(entry.parent.name != 'saves') return false;
+            if(
+                !entry.parent.name.includes(entry.name) &&
+                entry.parent.name != 'saves'
+            ) return false;
         }
 
         return await entry.get('level.dat') !== null;
