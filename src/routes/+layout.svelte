@@ -1,12 +1,10 @@
 
 <script lang="ts">
-    import atomOneDark from "svelte-highlight/styles/atom-one-dark"
+    import "highlight.js/styles/atom-one-dark.css";
 
 </script>
 
 <svelte:head>
-
-    {@html atomOneDark}
 
     <style>
 

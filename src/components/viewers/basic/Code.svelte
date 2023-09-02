@@ -1,20 +1,19 @@
 
 <script lang="ts">
     import type { fsFile } from "$lib/FileSystem";
-    import Highlight from "svelte-highlight/Highlight.svelte";
-    import type { LanguageType } from "svelte-highlight/languages";
+    import Code from "../../Code.svelte";
 
     export let entry: fsFile;
 
-    export let language: LanguageType<string>;
+    export let langName: string;
 
 </script>
 
 {#await entry.blob() then blob}
 
-    {#await blob.text() then text}
+    {#await blob.text() then code}
 
-        <Highlight {language} code={text} />
+        <Code code={code} langName={langName} />
 
     {/await}
 

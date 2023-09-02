@@ -21,7 +21,7 @@ const viewer: Viewer = {
                 throw new Error('Catastrophic error that should never happen, language does not exist but validation passed?');
             }
 
-            new Viewer_Code({ target, props: { entry, language: lang } });
+            new Viewer_Code({ target, props: { entry, langName: lang.name } });
 
         } else {
             throw new Error('Tried to create text viewer with directory.');

@@ -1,6 +1,6 @@
 import { fsEntry } from "$lib/FileSystem";
 import type { Viewer } from "$lib/Viewer";
-import Viewer_Text from "../../../components/viewers/basic/Text.svelte";
+import Viewer_Text from "../../../components/viewers/basic/Code.svelte";
 
 const viewer: Viewer = {
     namespace: 'text',
@@ -22,7 +22,7 @@ const viewer: Viewer = {
     createViewer: async (entry, target) => {
 
         if(entry.type == fsEntry.File) {
-            new Viewer_Text({ target, props: { entry } });
+            new Viewer_Text({ target, props: { entry, langName: 'plaintext' } });
         } else {
             throw new Error('Tried to create text viewer with directory.');
         }

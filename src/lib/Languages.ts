@@ -1,35 +1,29 @@
 
-import type { LanguageType } from "svelte-highlight/languages";
+import type { LanguageFn } from "highlight.js"
 
 
 
 type Language = {
     match: RegExp;
     name: string;
-    lang: LanguageType<string>;
+    get: () => Promise<LanguageFn>;
 }
 
 const LANGUAGES: Language[] = [];
 
-function addLang(match: RegExp, lang: LanguageType<string>): void {
-
-    if(!lang.name) {
-        throw new Error('Language name invalid.');
-    }
-
+function addLang(match: RegExp, name: string, get: () => Promise<LanguageFn>): void {
     LANGUAGES.push({
         match,
-        name: lang.name,
-        lang
+        name,
+        get
     });
-
 }
 
-export function getLangFromFilename(filename: string): LanguageType<string> | null {
+export function getLangFromFilename(filename: string): Language | null {
 
     for(const lang of LANGUAGES) {
         if(lang.match.test(filename)) {
-            return lang.lang;
+            return lang;
         }
     }
 
@@ -37,11 +31,11 @@ export function getLangFromFilename(filename: string): LanguageType<string> | nu
 
 }
 
-export function getLangFromName(name: string): LanguageType<string> | null {
+export function getLangFromName(name: string): Language | null {
 
     for(const lang of LANGUAGES) {
         if(lang.name == name) {
-            return lang.lang;
+            return lang;
         }
     }
     
@@ -51,31 +45,23 @@ export function getLangFromName(name: string): LanguageType<string> | null {
 
 
 
+// Plaintext never matches on filename.
+addLang(/$-/, 'plaintext', async () => (await import("highlight.js/lib/languages/plaintext")).default);
 
+addLang(/\.m?js$/, 'javascript', async () => (await import("highlight.js/lib/languages/javascript")).default);
 
-import lang_javascript from "svelte-highlight/languages/javascript";
-addLang(/\.m?js$/, lang_javascript);
+addLang(/\.(?:d\.)?ts$/, 'typescript', async () => (await import("highlight.js/lib/languages/typescript")).default);
 
-import lang_typescript from "svelte-highlight/languages/typescript";
-addLang(/\.(?:d\.)?ts$/, lang_typescript);
+addLang(/\.json$/, 'json', async () => (await import("highlight.js/lib/languages/json")).default);
 
-import lang_json from "svelte-highlight/languages/json";
-addLang(/\.json$/, lang_json);
+addLang(/\.(?:xml|html|svelte)$/, 'xml', async () => (await import("highlight.js/lib/languages/xml")).default);
 
-import lang_xml from "svelte-highlight/languages/xml";
-addLang(/\.(?:xml|html|svelte)$/, lang_xml);
+addLang(/\.md$/, 'markdown', async () => (await import("highlight.js/lib/languages/markdown")).default);
 
-import lang_markdown from "svelte-highlight/languages/markdown";
-addLang(/\.md$/, lang_markdown);
+addLang(/\.py$/, 'python', async () => (await import("highlight.js/lib/languages/python")).default);
 
-import lang_python from "svelte-highlight/languages/python";
-addLang(/\.py$/, lang_python);
+addLang(/\.sh$/, 'bash', async () => (await import("highlight.js/lib/languages/bash")).default);
 
-import lang_bash from "svelte-highlight/languages/bash";
-addLang(/\.sh$/, lang_bash);
+addLang(/\.(?:c|cpp|h|hpp|glsl|vsh|fsh)$/, 'cpp', async () => (await import("highlight.js/lib/languages/cpp")).default);
 
-import lang_cpp from "svelte-highlight/languages/cpp";
-addLang(/\.(?:c|cpp|h|hpp|glsl|vsh|fsh)$/, lang_cpp);
-
-import lang_rust from "svelte-highlight/languages/rust";
-addLang(/\.rs$/, lang_rust);
+addLang(/\.rs$/, 'rust', async () => (await import("highlight.js/lib/languages/rust")).default);

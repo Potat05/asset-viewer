@@ -1,8 +1,13 @@
 
 <script lang="ts">
     import type { fsFile } from "$lib/FileSystem";
-    import * as marked from "marked";
+    import { Marked } from "marked";
+    import { markedHighlight } from "marked-highlight";
     import { onDestroy, onMount } from "svelte";
+    import hljs from "highlight.js/lib/core";
+    import { getLangFromName } from "$lib/Languages";
+
+
 
     export let entry: fsFile;
 
@@ -16,10 +21,10 @@
 
             // Allow hrefs to header selectors inside the readme.
 
-            const idSelectors: NodeListOf<HTMLHeadingElement> = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+            const headerElements: NodeListOf<HTMLHeadingElement> = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
 
-            idSelectors.forEach(selector => {
-                selector.id = selector.innerText.toLowerCase();
+            headerElements.forEach(header => {
+                header.id = header.innerText.toLowerCase();
             });
 
         });
@@ -31,6 +36,25 @@
     onDestroy(() => {
         observer?.disconnect();
     });
+
+    const marked = new Marked(
+        markedHighlight({
+            langPrefix: 'hljs language-',
+            async: true,
+            highlight: async (code, langName) => {
+
+                const langContainer = getLangFromName(langName);
+
+                if(!langContainer) return code;
+
+                const lang = await langContainer.get();
+                hljs.registerLanguage(langContainer.name, lang);
+
+                return hljs.highlight(code, { language: langContainer.name }).value;
+
+            }
+        })
+    );
 
 </script>
 
@@ -62,9 +86,7 @@
     }
 
     .markdown-container :global(code) {
-        color: white;
-        padding: 5px;
-        border-radius: 5px;
+        background-color: black !important;
     }
 
     .markdown-container :global(a) {
@@ -78,7 +100,11 @@
     <div class="markdown-scroll" bind:this={container}>
         {#await entry.blob() then blob}
             {#await blob.text() then text}
-                {@html marked.parse(text)}
+
+                {#await marked.parse(text) then parsed}
+                    {@html parsed}
+                {/await}
+
             {/await}
         {/await}
     </div>
