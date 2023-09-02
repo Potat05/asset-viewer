@@ -16,7 +16,9 @@ const viewer: Viewer = {
             'license',
             'cfg',
             'properties',
-            'url'
+            'url',
+            'conf',
+            'config'
         ].includes(entry.name.split('.').pop()?.toLowerCase() ?? '');
     },
     createViewer: async (entry, target) => {
