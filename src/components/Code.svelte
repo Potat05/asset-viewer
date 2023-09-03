@@ -21,7 +21,7 @@
         hljs.registerLanguage(langContainer.name, lang);
 
         html = hljs.highlight(code, { language: langContainer.name }).value;
-    })
+    });
 
 </script>
 
