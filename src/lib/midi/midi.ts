@@ -5,7 +5,7 @@ import { DataReader } from "$lib/DataReader";
 
 
 
-enum MIDI_EVENT {
+export enum EVENT_MIDI {
     VoiceNoteOff = 0x8,
     VoiceNoteOn = 0x9,
     VoiceAftertouch = 0xA,
@@ -16,44 +16,44 @@ enum MIDI_EVENT {
     SystemExclusive = 0xF
 }
 
-interface MidiEvents {
-    [MIDI_EVENT.VoiceNoteOff]: {
+interface EventsMidi {
+    [EVENT_MIDI.VoiceNoteOff]: {
         note: number;
         velocity: number;
     };
-    [MIDI_EVENT.VoiceNoteOn]: {
+    [EVENT_MIDI.VoiceNoteOn]: {
         note: number;
         velocity: number;
     };
-    [MIDI_EVENT.VoiceAftertouch]: {
+    [EVENT_MIDI.VoiceAftertouch]: {
         note: number;
         pressure: number;
     };
-    [MIDI_EVENT.VoiceControlChange]: {
+    [EVENT_MIDI.VoiceControlChange]: {
         controller: number;
         value: number;
     };
-    [MIDI_EVENT.VoiceProgramChange]: {
+    [EVENT_MIDI.VoiceProgramChange]: {
         program: number;
     };
-    [MIDI_EVENT.VoiceChannelPressure]: {
+    [EVENT_MIDI.VoiceChannelPressure]: {
         pressure: number;
     };
-    [MIDI_EVENT.VoicePitchBlend]: {
+    [EVENT_MIDI.VoicePitchBlend]: {
         pitch: number;
     };
-    [MIDI_EVENT.SystemExclusive]: {
+    [EVENT_MIDI.SystemExclusive]: {
         data: ArrayBuffer;
     };
 }
 
-type _MidiEventsWithType = {
-    [Type in MIDI_EVENT]: {
+type _EventsMidiWithType = {
+    [Type in EVENT_MIDI]: {
         type: Type;
-    } & MidiEvents[Type];
+    } & EventsMidi[Type];
 }
 
-type MidiEvent = _MidiEventsWithType[keyof _MidiEventsWithType] & {
+type EventMidi = _EventsMidiWithType[keyof _EventsMidiWithType] & {
     meta: false;
     dt: number;
     channel: number;
@@ -61,7 +61,7 @@ type MidiEvent = _MidiEventsWithType[keyof _MidiEventsWithType] & {
 
 
 
-enum MIDI_META_EVENT {
+enum EVENT_META {
     SequenceNumber = 0x00,
     TextEvent = 0x01,
     CopyrightNotice = 0x02,
@@ -79,71 +79,75 @@ enum MIDI_META_EVENT {
     SequencerSpecificMetaEvent = 0x7F
 }
 
-interface MidiMetaEvents {
-    [MIDI_META_EVENT.SequenceNumber]: {
+interface EventsMeta {
+    [EVENT_META.SequenceNumber]: {
         sequence: number;
     };
-    [MIDI_META_EVENT.TextEvent]: {
+    [EVENT_META.TextEvent]: {
         text: string;
     };
-    [MIDI_META_EVENT.CopyrightNotice]: {
+    [EVENT_META.CopyrightNotice]: {
         copyright: string;
     };
-    [MIDI_META_EVENT.SequenceTrackName]: {
+    [EVENT_META.SequenceTrackName]: {
         name: string;
     };
-    [MIDI_META_EVENT.InstrumentName]: {
+    [EVENT_META.InstrumentName]: {
         instrument: string;
     };
-    [MIDI_META_EVENT.Lyric]: {
+    [EVENT_META.Lyric]: {
         lyric: string;
     };
-    [MIDI_META_EVENT.Marker]: {
+    [EVENT_META.Marker]: {
         marker: string;
     };
-    [MIDI_META_EVENT.CuePoint]: {
+    [EVENT_META.CuePoint]: {
         description: string;
     };
-    [MIDI_META_EVENT.MIDIChannelPrefix]: {
+    [EVENT_META.MIDIChannelPrefix]: {
         channel: number;
     };
-    [MIDI_META_EVENT.EndOfTrack]: {
+    [EVENT_META.EndOfTrack]: {
     };
-    [MIDI_META_EVENT.SetTempo]: {
+    [EVENT_META.SetTempo]: {
         tempo: number;
     };
-    [MIDI_META_EVENT.SMPTEOffset]: {
+    [EVENT_META.SMPTEOffset]: {
         hour: number;
         minute: number;
         second: number;
         frame: number;
         fractionalFrame: number;
     };
-    [MIDI_META_EVENT.TimeSignature]: {
+    [EVENT_META.TimeSignature]: {
         numerator: number;
         denominator: number;
         clocks: number;
         notes: number;
     };
-    [MIDI_META_EVENT.KeySignature]: {
+    [EVENT_META.KeySignature]: {
         signature: number;
         key: 'major' | 'minor';
     };
-    [MIDI_META_EVENT.SequencerSpecificMetaEvent]: {
+    [EVENT_META.SequencerSpecificMetaEvent]: {
         data: ArrayBuffer;
     };
 }
 
-type _MidiMetaEventsWithType = {
-    [Type in MIDI_META_EVENT]: {
+type _EventsMetaWithType = {
+    [Type in EVENT_META]: {
         type: Type;
-    } & MidiMetaEvents[Type];
+    } & EventsMeta[Type];
 }
 
-type MidiMetaEvent = _MidiMetaEventsWithType[keyof _MidiMetaEventsWithType] & {
+type EventMeta = _EventsMetaWithType[keyof _EventsMetaWithType] & {
     meta: true;
     dt: number;
 }
+
+
+
+export type MidiEvent = (EventMidi | EventMeta);
 
 
 
@@ -157,6 +161,10 @@ type MidiHeader = {
     format: MIDI_FORMAT;
     numTracks: number;
     timeDivision: number;
+}
+
+export type Midi = MidiHeader & {
+    tracks: MidiEvent[][];
 }
 
 
@@ -184,60 +192,65 @@ class MidiReader extends DataReader {
         this.assertMagic(6, 'Uint32'); // Header length must always be 6 bytes.
 
         const format = this.readNumber('Uint16');
+        const numTracks = this.readNumber('Uint16');
 
         if(!(format in MIDI_FORMAT)) {
             throw new Error(`MIDI header invalid format.`);
         }
 
+        if(format == MIDI_FORMAT.Single && numTracks != 1) {
+            throw new Error('MIDI header invalid format.');
+        }
+
         return {
             format,
-            numTracks: this.readNumber('Uint16'),
+            numTracks,
             timeDivision: this.readNumber('Uint16')
         }
     }
 
-    readEvent(dt: number, status: number): MidiEvent {
-        const type = ((status & 0xF0) >> 4) as MIDI_EVENT;
+    readEvent(dt: number, status: number): EventMidi {
+        const type = ((status & 0xF0) >> 4) as EVENT_MIDI;
         const channel = status & 0x0F;
 
         let data;
 
         switch(type) {
-            case MIDI_EVENT.VoiceNoteOff: data = {
+            case EVENT_MIDI.VoiceNoteOff: data = {
                 note: this.readVLQ(),
                 velocity: this.readVLQ()
             }; break;
-            case MIDI_EVENT.VoiceNoteOn: data = {
+            case EVENT_MIDI.VoiceNoteOn: data = {
                 note: this.readVLQ(),
                 velocity: this.readVLQ()
             }; break;
-            case MIDI_EVENT.VoiceAftertouch: data = {
+            case EVENT_MIDI.VoiceAftertouch: data = {
                 note: this.readVLQ(),
                 pressure: this.readVLQ()
             }; break;
-            case MIDI_EVENT.VoiceControlChange: data = {
+            case EVENT_MIDI.VoiceControlChange: data = {
                 controller: this.readVLQ(),
                 value: this.readVLQ()
             }; break;
-            case MIDI_EVENT.VoiceProgramChange: data = {
+            case EVENT_MIDI.VoiceProgramChange: data = {
                 program: this.readVLQ()
             }; break;
-            case MIDI_EVENT.VoiceChannelPressure: data = {
+            case EVENT_MIDI.VoiceChannelPressure: data = {
                 pressure: this.readVLQ()
             }; break;
-            case MIDI_EVENT.VoicePitchBlend: data = {
+            case EVENT_MIDI.VoicePitchBlend: data = {
                 pitch: (this.readVLQ() << 7) & this.readVLQ()
             }; break;
-            case MIDI_EVENT.SystemExclusive: data = {
+            case EVENT_MIDI.SystemExclusive: data = {
                 data: this.readBuffer(this.readVLQ())
             }; break;
             default: throw new Error('Failed reading midi event.');
         }
 
-        return ({ meta: false, dt, type, channel, ...data }) as unknown as MidiEvent;
+        return ({ meta: false, dt, type, channel, ...data }) as unknown as EventMidi;
     }
 
-    readMetaEvent(dt: number): MidiMetaEvent {
+    readMetaEvent(dt: number): EventMeta {
         const type = this.readNumber('Uint8');
         const length = this.readVLQ();
 
@@ -246,56 +259,56 @@ class MidiReader extends DataReader {
         let data;
 
         switch(type) {
-            case MIDI_META_EVENT.SequenceNumber: data = {
+            case EVENT_META.SequenceNumber: data = {
                 sequence: this.readNumber('Uint16')
             }; break;
-            case MIDI_META_EVENT.TextEvent: data = {
+            case EVENT_META.TextEvent: data = {
                 text: this.readString(length, 'utf-8')
             }; break;
-            case MIDI_META_EVENT.CopyrightNotice: data = {
+            case EVENT_META.CopyrightNotice: data = {
                 copyright: this.readString(length, 'utf-8')
             }; break;
-            case MIDI_META_EVENT.SequenceTrackName: data = {
+            case EVENT_META.SequenceTrackName: data = {
                 name: this.readString(length, 'utf-8')
             }; break;
-            case MIDI_META_EVENT.InstrumentName: data = {
+            case EVENT_META.InstrumentName: data = {
                 instrument: this.readString(length, 'utf-8')
             }; break;
-            case MIDI_META_EVENT.Lyric: data = {
+            case EVENT_META.Lyric: data = {
                 lyric: this.readString(length, 'utf-8')
             }; break;
-            case MIDI_META_EVENT.Marker: data = {
+            case EVENT_META.Marker: data = {
                 marker: this.readString(length, 'utf-8')
             }; break;
-            case MIDI_META_EVENT.CuePoint: data = {
+            case EVENT_META.CuePoint: data = {
                 description: this.readString(length, 'utf-8')
             }; break;
-            case MIDI_META_EVENT.MIDIChannelPrefix: data = {
+            case EVENT_META.MIDIChannelPrefix: data = {
                 channel: this.readNumber('Uint8')
             }; break;
-            case MIDI_META_EVENT.EndOfTrack: data = {
+            case EVENT_META.EndOfTrack: data = {
             }; break;
-            case MIDI_META_EVENT.SetTempo: data = {
+            case EVENT_META.SetTempo: data = {
                 tempo: this.readCustomNumber(3, false)
             }; break;
-            case MIDI_META_EVENT.SMPTEOffset: data = {
+            case EVENT_META.SMPTEOffset: data = {
                 hour: this.readNumber('Uint8'),
                 minute: this.readNumber('Uint8'),
                 second: this.readNumber('Uint8'),
                 frame: this.readNumber('Uint8'),
                 fractionalFrame: this.readNumber('Uint8')
             }; break;
-            case MIDI_META_EVENT.TimeSignature: data = {
+            case EVENT_META.TimeSignature: data = {
                 numerator: this.readNumber('Uint8'),
                 denominator: Math.pow(2, this.readNumber('Uint8')),
                 clocks: this.readNumber('Uint8'),
                 notes: this.readNumber('Uint8')
             }; break;
-            case MIDI_META_EVENT.KeySignature: data = {
+            case EVENT_META.KeySignature: data = {
                 signature: this.readNumber('Int8'),
                 key: this.readNumber('Uint8') == 0 ? 'major' : 'minor'
             }; break;
-            case MIDI_META_EVENT.SequencerSpecificMetaEvent: {
+            case EVENT_META.SequencerSpecificMetaEvent: {
                 console.log('MIDI Skipped sequencer specific meta event.');
                 data = {
                     data: this.readBuffer(length)
@@ -307,23 +320,23 @@ class MidiReader extends DataReader {
         }
 
         if(this.pointer < start + length) {
-            console.warn(`Meta event ${MIDI_META_EVENT[type]} has invalid length.`);
+            console.warn(`Meta event ${EVENT_META[type]} has invalid length.`);
             this.pointer = start + length;
         } else if(this.pointer > start + length) {
-            throw new Error(`Meta event ${MIDI_META_EVENT[type]} length is too small for data.`);
+            throw new Error(`Meta event ${EVENT_META[type]} length is too small for data.`);
         }
 
-        return ({ meta: true, dt, type, ...data }) as unknown as MidiMetaEvent;
+        return ({ meta: true, dt, type, ...data }) as unknown as EventMeta;
 
     }
 
-    readTrack(): (MidiEvent | MidiMetaEvent)[] {
+    readTrack(): MidiEvent[] {
         this.assertMagic('MTrk');
         const length = this.readNumber('Uint32');
 
         const start = this.pointer;
 
-        let events: (MidiEvent | MidiMetaEvent)[] = [];
+        let events: (EventMidi | EventMeta)[] = [];
 
         let lastStatus: number = 0;
 
@@ -351,7 +364,7 @@ class MidiReader extends DataReader {
 
 
 
-            if(event.meta && event.type == MIDI_META_EVENT.EndOfTrack) {
+            if(event.meta && event.type == EVENT_META.EndOfTrack) {
                 break;
             }
 
@@ -367,7 +380,7 @@ class MidiReader extends DataReader {
 
 
 
-export function parseMidi(buffer: ArrayBuffer) {
+export function parseMidi(buffer: ArrayBuffer): Midi {
 
     const reader = new MidiReader(buffer);
     reader.endianness = DataReader.BIG_ENDIAN;
