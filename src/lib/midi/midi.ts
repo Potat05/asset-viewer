@@ -61,7 +61,7 @@ type EventMidi = _EventsMidiWithType[keyof _EventsMidiWithType] & {
 
 
 
-enum EVENT_META {
+export enum EVENT_META {
     SequenceNumber = 0x00,
     TextEvent = 0x01,
     CopyrightNotice = 0x02,
@@ -151,7 +151,7 @@ export type MidiEvent = (EventMidi | EventMeta);
 
 
 
-enum MIDI_FORMAT {
+export enum MIDI_FORMAT {
     Single = 0,
     Simultaneous = 1,
     Independent = 2
@@ -160,8 +160,14 @@ enum MIDI_FORMAT {
 type MidiHeader = {
     format: MIDI_FORMAT;
     numTracks: number;
-    timeDivision: number;
-}
+} & ({
+    divFormat: 'metrical';
+    ticksPerQuarterNote: number;
+} | {
+    divFormat: 'timecode';
+    negativeSMPTEFormat: number;
+    ticksPerFrame: number;
+});
 
 export type Midi = MidiHeader & {
     tracks: MidiEvent[][];
@@ -192,20 +198,41 @@ class MidiReader extends DataReader {
         this.assertMagic(6, 'Uint32'); // Header length must always be 6 bytes.
 
         const format = this.readNumber('Uint16');
-        const numTracks = this.readNumber('Uint16');
 
         if(!(format in MIDI_FORMAT)) {
             throw new Error(`MIDI header invalid format.`);
         }
 
+        const numTracks = this.readNumber('Uint16');
+
         if(format == MIDI_FORMAT.Single && numTracks != 1) {
             throw new Error('MIDI header invalid format.');
         }
 
-        return {
-            format,
-            numTracks,
-            timeDivision: this.readNumber('Uint16')
+        const timeDivisionValue = this.readNumber('Uint16');
+
+        if(timeDivisionValue & 0b1000000000000000) {
+
+            const negativeSMPTEFormat = (timeDivisionValue & 0b0111111100000000) >> 8;
+            const ticksPerFrame = timeDivisionValue & 0b0000000011111111;
+
+            return {
+                format,
+                numTracks,
+                divFormat: 'timecode',
+                negativeSMPTEFormat,
+                ticksPerFrame
+            }
+
+        } else {
+
+            return {
+                format,
+                numTracks,
+                divFormat: 'metrical',
+                ticksPerQuarterNote: timeDivisionValue
+            }
+
         }
     }
 

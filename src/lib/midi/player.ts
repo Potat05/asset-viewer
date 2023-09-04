@@ -1,7 +1,7 @@
 
 import { EventDispatcher } from "$lib/EventDispatcher";
 import { Utils } from "$lib/Utils";
-import { EVENT_MIDI, type Midi, type MidiEvent } from "./midi";
+import { EVENT_META, EVENT_MIDI, type Midi, type MidiEvent } from "./midi";
 
 
 
@@ -9,7 +9,7 @@ const NOTE_LIST = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', '
 
 
 
-class MidiNote {
+export class MidiNote {
     value: number;
 
     constructor(value: number) {
@@ -45,7 +45,7 @@ class MidiNote {
 
 
 export class MidiPlayer extends EventDispatcher<{
-    "playnote": (note: MidiNote) => void;
+    'note': (note: MidiNote, channel: number, velocity: number) => void;
 }> {
 
     midi: Midi;
@@ -57,7 +57,25 @@ export class MidiPlayer extends EventDispatcher<{
 
 
 
+    division: number = 4;
+    tempo: number = 120;
+
+
+
+    getTickMs(dt: number): number {
+        const bpm = (60000000 / this.tempo);
+        return dt * (60000 / (bpm * this.division));
+    }
+
+
+
     async play(): Promise<void> {
+
+        if(this.midi.divFormat != 'metrical') {
+            throw new Error(`Cannot play time div format "${this.midi.divFormat}"`);
+        }
+
+        this.division = this.midi.ticksPerQuarterNote;
 
         const playTrack = async (track: MidiEvent[]) => {
 
@@ -67,15 +85,31 @@ export class MidiPlayer extends EventDispatcher<{
 
                 if(event.meta == false) {
 
-                    if(event.type == EVENT_MIDI.VoiceNoteOn && event.velocity > 0) {
-                        this.dispatchEvent('playnote', new MidiNote(event.note));
+                    if(event.type == EVENT_MIDI.VoiceNoteOn) {
+
+                        this.dispatchEvent('note', new MidiNote(event.note), event.channel, event.velocity);
+
+                    }
+
+                } else {
+
+                    if(event.type == EVENT_META.SetTempo) {
+                        this.tempo = event.tempo;
                     }
 
                 }
 
 
 
-                await Utils.wait(event.dt * 1);
+                // The event DT is the time from last event to current.
+                // So we need to look ahead to find how long to wait.
+                const nextEvent = track[i + 1];
+                if(!nextEvent) continue;
+
+                const ms = this.getTickMs(nextEvent.dt);
+                if(ms >= 10) {
+                    await Utils.wait(ms);
+                }
 
             }
 
