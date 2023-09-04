@@ -43,7 +43,7 @@
             async: true,
             highlight: async (code, langName) => {
 
-                const langContainer = getLangFromName(langName);
+                const langContainer = getLangFromName(langName.toLowerCase());
 
                 if(!langContainer) return code;
 
