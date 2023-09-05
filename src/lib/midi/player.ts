@@ -132,6 +132,9 @@ export class MidiPlayer extends EventDispatcher<{
 
                     if(event.type == EVENT_META.SetTempo) {
                         this.tempo = event.tempo;
+                    } else if(event.type == EVENT_META.EndOfTrack) {
+                        track.finished = true;
+                        continue;
                     }
 
                 }
@@ -142,8 +145,7 @@ export class MidiPlayer extends EventDispatcher<{
                 track.index++;
 
                 if(track.index >= track.events.length) {
-                    track.finished = true;
-                    continue;
+                    throw new Error(`MIDI player got to end of events without an end of track event.`);
                 }
 
             }
