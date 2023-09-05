@@ -45,7 +45,7 @@ export class MidiNote {
 
 
 export class MidiPlayer extends EventDispatcher<{
-    'note': (note: MidiNote, channel: number, velocity: number) => void;
+    'note': (note: MidiNote, velocity: number, channel: number, track: number) => void;
 }> {
 
     midi: Midi;
@@ -77,17 +77,35 @@ export class MidiPlayer extends EventDispatcher<{
 
         this.division = this.midi.ticksPerQuarterNote;
 
-        const playTrack = async (track: MidiEvent[]) => {
+        // This way of doing is is kinda trash.
+        // TODO - Refactor try a different solution.
 
-            for(let i = 0; i < track.length; i++) {
+        let trackTime: number[] = this.midi.tracks.map(() => 0);
+        let trackIndex: number[] = this.midi.tracks.map(() => 0); // -1 means finished.
 
-                const event = track[i];
+        while(trackIndex.some(index => index != -1)) {
+
+            for(let i = 0; i < this.midi.tracks.length; i++) {
+
+                // Track is finished.
+                if(trackIndex[i] == -1) continue;
+
+                // Next event is not ready to be played.
+                if(trackTime[i] > Date.now()) continue;
+
+                const track = this.midi.tracks[i];
+
+                const event = track[trackIndex[i]];
 
                 if(event.meta == false) {
 
                     if(event.type == EVENT_MIDI.VoiceNoteOn) {
 
-                        this.dispatchEvent('note', new MidiNote(event.note), event.channel, event.velocity);
+                        this.dispatchEvent('note', new MidiNote(event.note), event.velocity, event.channel, i);
+
+                    } else if(event.type == EVENT_MIDI.VoiceNoteOff) {
+
+                        this.dispatchEvent('note', new MidiNote(event.note), event.velocity, event.channel, i);
 
                     }
 
@@ -101,24 +119,27 @@ export class MidiPlayer extends EventDispatcher<{
 
 
 
-                // The event DT is the time from last event to current.
-                // So we need to look ahead to find how long to wait.
-                const nextEvent = track[i + 1];
-                if(!nextEvent) continue;
+                trackIndex[i]++;
 
-                const ms = this.getTickMs(nextEvent.dt);
-                if(ms >= 10) {
-                    await Utils.wait(ms);
+                
+
+                if(trackIndex[i] >= track.length) {
+                    trackIndex[i] = -1;
+                    continue;
                 }
+
+
+
+                const nextEvent = track[trackIndex[i]];
+                const ms = this.getTickMs(nextEvent.dt);
+                trackTime[i] = Date.now() + ms;
 
             }
 
-        }
 
 
+            await Utils.wait(Date.now() - trackTime.reduce((min, time) => time < min ? time : min, Infinity));
 
-        for(const track of this.midi.tracks) {
-            playTrack(track);
         }
 
     }

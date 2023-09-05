@@ -29,6 +29,7 @@ const viewer: Viewer = {
                 text += `  NEGATIVE SMPTE FORMAT: ${parsed.negativeSMPTEFormat}\n`;
                 text += `  TICKS PER FRAME: ${parsed.ticksPerFrame}\n`;
             }
+            text += `NUM TRACKS: ${parsed.numTracks}\n`;
             for(let i = 0; i < parsed.tracks.length; i++) {
                 const track = parsed.tracks[i];
                 text += `TRACK ${i}:\n`;
@@ -64,9 +65,9 @@ const viewer: Viewer = {
                 return 440 * (2 ** ((value - 69) / 12));
             }
 
-            let sounds: { gain: GainNode, osc: OscillatorNode, note: MidiNote }[] = [];
+            let sounds: { gain: GainNode, osc: OscillatorNode, note: MidiNote, channel: number, track: number }[] = [];
 
-            player.addEventListener('note', async (note, channel, velocity) => {
+            player.addEventListener('note', async (note, velocity, channel, track) => {
 
                 if(velocity > 0) {
 
@@ -82,11 +83,11 @@ const viewer: Viewer = {
                     osc.frequency.value = midiNoteToFreq(note.value);
                     osc.start();
 
-                    sounds.push({ gain, osc, note });
+                    sounds.push({ gain, osc, note, channel, track });
 
                 } else {
 
-                    const soundIndex = sounds.findIndex(s => s.note.value == note.value);
+                    const soundIndex = sounds.findIndex(s => s.note.value == note.value && s.channel == channel && s.track == track);
 
                     if(soundIndex == -1) {
                         throw new Error(`Failed to remove sound.`);
@@ -107,7 +108,7 @@ const viewer: Viewer = {
                     osc.disconnect();
 
                 }
-                
+
             });
 
 
