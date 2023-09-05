@@ -77,26 +77,45 @@ export class MidiPlayer extends EventDispatcher<{
 
         this.division = this.midi.ticksPerQuarterNote;
 
-        // This way of doing is is kinda trash.
-        // TODO - Refactor try a different solution.
 
-        let trackTime: number[] = this.midi.tracks.map(() => 0);
-        let trackIndex: number[] = this.midi.tracks.map(() => 0); // -1 means finished.
 
-        while(trackIndex.some(index => index != -1)) {
+        type AccumulatedEvent = MidiEvent & { acc: number };
+        type PlayingTrack = { finished: boolean, index: number, events: AccumulatedEvent[] };
 
-            for(let i = 0; i < this.midi.tracks.length; i++) {
 
-                // Track is finished.
-                if(trackIndex[i] == -1) continue;
 
-                // Next event is not ready to be played.
-                if(trackTime[i] > Date.now()) continue;
+        const tracks: PlayingTrack[] = this.midi.tracks.map(track => {
+            // Accumulated ticks on each track
+            let acc = 0;
+            return {
+                index: 0,
+                finished: false,
+                events: track.map(event => {
+                    acc += event.dt;
+                    return { ...event, acc };
+                })
+            }
+        });
 
-                const track = this.midi.tracks[i];
 
-                const event = track[trackIndex[i]];
 
+        let tick = 0;
+
+        while(tracks.some(track => !track.finished)) {
+
+            for(let i = 0; i < tracks.length; i++) {
+                const track = tracks[i];
+
+                if(track.finished) continue;
+
+
+
+                const event = track.events[track.index];
+
+                // Event is not yet to be played.
+                if(event.acc > tick) continue;
+
+                // Execute event.
                 if(event.meta == false) {
 
                     if(event.type == EVENT_MIDI.VoiceNoteOn) {
@@ -119,28 +138,38 @@ export class MidiPlayer extends EventDispatcher<{
 
 
 
-                trackIndex[i]++;
+                // Increment to next event.
+                track.index++;
 
-                
-
-                if(trackIndex[i] >= track.length) {
-                    trackIndex[i] = -1;
+                if(track.index >= track.events.length) {
+                    track.finished = true;
                     continue;
                 }
-
-
-
-                const nextEvent = track[trackIndex[i]];
-                const ms = this.getTickMs(nextEvent.dt);
-                trackTime[i] = Date.now() + ms;
 
             }
 
 
 
-            await Utils.wait(Date.now() - trackTime.reduce((min, time) => time < min ? time : min, Infinity));
+            // Num ticks for next event.
+            const ticksNextEvent = tracks.reduce((lowest, track) => {
+                if(track.finished) return lowest;
+                const event = track.events[track.index];
+                return event.dt < lowest ? event.dt : lowest;
+            }, Infinity);
+
+            // Multiple events may be on the same tick.
+            if(ticksNextEvent == 0) {
+                continue;
+            }
+
+            // Go to next tick that has events.
+            tick += ticksNextEvent;
+
+            await Utils.wait(this.getTickMs(ticksNextEvent));
 
         }
+
+
 
     }
 
