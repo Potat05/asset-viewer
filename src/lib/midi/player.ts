@@ -1,7 +1,6 @@
 
 import { EventDispatcher } from "$lib/EventDispatcher";
-import { Utils } from "$lib/Utils";
-import { EVENT_META, EVENT_MIDI, type Midi, type MidiEvent } from "./midi";
+import { EVENT_META, EVENT_MIDI, MIDI_FORMAT, type Midi, type MidiEvent } from "./midi";
 
 
 
@@ -44,47 +43,40 @@ export class MidiNote {
 
 
 
+
+
+type AccumulatedEvent = MidiEvent & { acc: number };
+type PlayingTrack = { finished: boolean, index: number, events: AccumulatedEvent[] };
+
+
+
+
+
 export class MidiPlayer extends EventDispatcher<{
     'note': (note: MidiNote, velocity: number, channel: number, track: number) => void;
 }> {
 
-    midi: Midi;
+    
+    private division: number;
+    private tempo: number = 120;
+
+    private tracks: PlayingTrack[];
+
+    private currentTick: number = 0;
 
     constructor(midi: Midi) {
         super();
-        this.midi = midi;
-    }
 
-
-
-    division: number = 4;
-    tempo: number = 120;
-
-
-
-    getTickMs(dt: number): number {
-        const bpm = (60000000 / this.tempo);
-        return dt * (60000 / (bpm * this.division));
-    }
-
-
-
-    async play(): Promise<void> {
-
-        if(this.midi.divFormat != 'metrical') {
-            throw new Error(`Cannot play time div format "${this.midi.divFormat}"`);
+        if(midi.format != MIDI_FORMAT.Single && midi.format != MIDI_FORMAT.Simultaneous) {
+            throw new Error(`Cannot play MIDI format "${MIDI_FORMAT[midi.format]}"`);
         }
 
-        this.division = this.midi.ticksPerQuarterNote;
+        if(midi.divFormat != 'metrical') {
+            throw new Error(`Cannot play time div format "${midi.divFormat}"`);
+        }
+        this.division = midi.ticksPerQuarterNote;
 
-
-
-        type AccumulatedEvent = MidiEvent & { acc: number };
-        type PlayingTrack = { finished: boolean, index: number, events: AccumulatedEvent[] };
-
-
-
-        const tracks: PlayingTrack[] = this.midi.tracks.map(track => {
+        this.tracks = midi.tracks.map(track => {
             // Accumulated ticks on each track
             let acc = 0;
             return {
@@ -97,23 +89,48 @@ export class MidiPlayer extends EventDispatcher<{
             }
         });
 
+    }
 
 
-        let tick = 0;
 
-        while(tracks.some(track => !track.finished)) {
+    private getTickMs(dt: number): number {
+        const bpm = (60000000 / this.tempo);
+        return dt * (60000 / (bpm * this.division));
+    }
 
-            for(let i = 0; i < tracks.length; i++) {
-                const track = tracks[i];
+
+
+    /**
+     * @returns If this song is finished playing.  
+     */
+    public finished(): boolean {
+        return this.tracks.every(track => track.finished);
+    }
+
+
+
+    /**
+     * Play next events in the song.  
+     * @returns Milliseconds to wait to tick again.  
+     */
+    public tick(): number {
+
+        let nextTick = 0;
+
+        while(nextTick == 0) {
+
+            for(let i = 0; i < this.tracks.length; i++) {
+
+                const track = this.tracks[i];
 
                 if(track.finished) continue;
 
-
-
                 const event = track.events[track.index];
 
+
+
                 // Event is not yet to be played.
-                if(event.acc > tick) continue;
+                if(event.acc > this.currentTick) continue;
 
                 // Execute event.
                 if(event.meta == false) {
@@ -153,25 +170,18 @@ export class MidiPlayer extends EventDispatcher<{
 
 
             // Num ticks for next event.
-            const ticksNextEvent = tracks.reduce((lowest, track) => {
+            nextTick = this.tracks.reduce((lowest, track) => {
                 if(track.finished) return lowest;
                 const event = track.events[track.index];
                 return event.dt < lowest ? event.dt : lowest;
             }, Infinity);
 
-            // Multiple events may be on the same tick.
-            if(ticksNextEvent == 0) {
-                continue;
-            }
-
             // Go to next tick that has events.
-            tick += ticksNextEvent;
-
-            await Utils.wait(this.getTickMs(ticksNextEvent));
+            this.currentTick += nextTick;
 
         }
 
-
+        return this.getTickMs(nextTick);
 
     }
 

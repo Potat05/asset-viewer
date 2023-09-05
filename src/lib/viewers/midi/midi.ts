@@ -113,7 +113,10 @@ const viewer: Viewer = {
 
 
 
-            player.play();
+            while(!player.finished()) {
+                const ms = player.tick();
+                await Utils.wait(ms);
+            }
 
         } else {
             throw new Error('Tried to create midi viewer with directory.');
