@@ -7,7 +7,7 @@
     import hljs from "highlight.js/lib/core";
     import { getLangFromName } from "$lib/Languages";
 
-
+    // TODO - Instead of using an observer to add ids to header elements, use a Marked extension.
 
     export let entry: fsFile;
 
@@ -24,7 +24,7 @@
             const headerElements: NodeListOf<HTMLHeadingElement> = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
 
             headerElements.forEach(header => {
-                header.id = header.innerText.toLowerCase();
+                header.id = header.innerText.toLowerCase().replace(' ', '_');
             });
 
         });
