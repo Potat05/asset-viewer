@@ -283,9 +283,10 @@ export namespace fsUtils {
 
         private entries: {[key: string]: fsFile | fsDirectory} = {};
 
-        constructor(name: string, parent: fsDirectory | null) {
+        constructor(name: string, parent: fsDirectory | null, entries: {[key: string]: fsFile | fsDirectory} = {}) {
             this.name = name;
             this.parent = parent;
+            this.entries = entries;
         }
 
         async list(): Promise<{ [key: string]: fsDirectory | fsFile; }> {
