@@ -6,6 +6,7 @@
     * [Basic](#basic)
     * [Advanced](#advanced)
         * [Executable (PE)](#executable)
+    * [Midi](#midi)
     * [Games](#games)
         * [Minecraft](#minecraft)
         * [Ren'Py](#ren'py)
@@ -38,6 +39,10 @@ Use the tabs at the top to navigate viewers.
 ### Executable
 
 * Executable Resource Icon
+
+# Midi
+
+* Midi player
 
 # Games
 
