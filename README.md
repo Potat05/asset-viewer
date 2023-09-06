@@ -23,6 +23,8 @@ Drag and drop a directory onto the window.
     * Markdown
 * Advanced
     * Executable (Icon)
+* Midi
+    * Midi player
 * Games
     * Minecraft
         * NBT viewer
@@ -46,7 +48,7 @@ Drag and drop a directory onto the window.
 * Executable (PE)
     * x86 disassembler with [iced-x86](https://www.npmjs.com/package/iced-x86)
 * Midi sequence
-    * Player & visualization
+    * Visualization
     * Soundfont 2
 
 ## TODO
@@ -69,3 +71,4 @@ Drag and drop a directory onto the window.
 [PE-bear](https://github.com/hasherezade/pe-bear/), Easy to use UI to explore executable (PE) files.  
 [Kaitai Struct](http://formats.kaitai.io), A lot of file format specifications with block diagrams.  
 [CPython](https://github.com/python/cpython), Has Python implementations of various things.  
+[McGill University MIDI Documentation](http://www.music.mcgill.ca/~ich/classes/mumt306/StandardMIDIfileformat.html)
