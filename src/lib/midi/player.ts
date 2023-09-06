@@ -46,7 +46,12 @@ export class MidiNote {
 
 
 type AccumulatedEvent = MidiEvent & { acc: number };
-type PlayingTrack = { finished: boolean, index: number, events: AccumulatedEvent[] };
+type PlayingTrack = {
+    finished: boolean,
+    index: number,
+    totalTicks: number,
+    events: AccumulatedEvent[]
+};
 
 
 
@@ -62,7 +67,16 @@ export class MidiPlayer extends EventDispatcher<{
 
     private tracks: PlayingTrack[];
 
-    private currentTick: number = 0;
+    private _currentTick: number = 0;
+
+    public get currentTick(): number {
+        return this._currentTick;
+    }
+    public get totalTicks(): number {
+        return this.tracks.reduce((total, track) => {
+            return track.totalTicks > total ? track.totalTicks : total;
+        }, 0);
+    }
 
     constructor(midi: Midi) {
         super();
@@ -85,7 +99,8 @@ export class MidiPlayer extends EventDispatcher<{
                 events: track.map(event => {
                     acc += event.dt;
                     return { ...event, acc };
-                })
+                }),
+                totalTicks: acc
             }
         });
 
@@ -130,7 +145,7 @@ export class MidiPlayer extends EventDispatcher<{
 
 
                 // Event is not yet to be played.
-                if(event.acc > this.currentTick) continue;
+                if(event.acc > this._currentTick) continue;
 
                 // Execute event.
                 if(event.meta == false) {
@@ -177,7 +192,7 @@ export class MidiPlayer extends EventDispatcher<{
             }, Infinity);
 
             // Go to next tick that has events.
-            this.currentTick += nextTick;
+            this._currentTick += nextTick;
 
         }
 
