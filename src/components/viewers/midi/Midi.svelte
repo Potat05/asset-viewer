@@ -136,6 +136,6 @@
         <button on:click={stop}>Pause</button>
     {/if}
 
-    <progress value={playerCurrentTick / player.totalTicks} max={1}></progress>
+    <progress value={Math.floor(playerCurrentTick / player.totalTicks * 100)} max={100}></progress>
 
 {/if}
