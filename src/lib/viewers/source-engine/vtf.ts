@@ -1,14 +1,3 @@
-
-/*
-
-    BC Texture Compression:
-        https://learn.microsoft.com/en-us/windows/win32/direct3d9/compressed-texture-resources
-
-    Valve Texture Format specifications:
-        https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)
-
-*/
-
 import { fsEntry } from "$lib/FileSystem";
 import type { Viewer } from "$lib/Viewer";
 import { VTF } from "$lib/source-engine/vtf";

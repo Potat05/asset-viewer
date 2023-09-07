@@ -1,3 +1,12 @@
+/*
+
+    BC Texture Compression:
+        https://learn.microsoft.com/en-us/windows/win32/direct3d9/compressed-texture-resources
+
+    Valve Texture Format specifications:
+        https://developer.valvesoftware.com/wiki/VTF_(Valve_Texture_Format)
+
+*/
 
 import { DataReader } from "$lib/DataReader";
 import { NumberUtils } from "$lib/NumberUtils";
