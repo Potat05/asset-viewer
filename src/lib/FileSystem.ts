@@ -281,7 +281,7 @@ export namespace fsUtils {
         public readonly name: string;
         public parent: fsDirectory | null;
 
-        private entries: {[key: string]: fsFile | fsDirectory} = {};
+        private entries: {[key: string]: fsFile | fsDirectory};
 
         constructor(name: string, parent: fsDirectory | null, entries: {[key: string]: fsFile | fsDirectory} = {}) {
             this.name = name;
