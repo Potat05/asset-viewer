@@ -142,3 +142,8 @@ createNewViewer(MinecraftWorldViewer);
 
 import MidiMidiViewer from "./viewers/midi/midi";
 createNewViewer(MidiMidiViewer);
+
+
+
+import SourceEngineVTFViewer from "./viewers/source-engine/vtf";
+createNewViewer(SourceEngineVTFViewer);

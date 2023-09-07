@@ -18,5 +18,14 @@ export namespace NumberUtils {
         return `${prefix}${value.toString(16).toUpperCase().padStart(bytes * 2, '0')}`;
     }
 
+
+
+    /**
+     * Linear interpolate between 2 values.  
+     */
+    export function lerp(a: number, b: number, t: number): number {
+        return a + t * (b - a);
+    }
+
 }
 
