@@ -443,7 +443,7 @@ export class VTF {
     readonly mipmaps: number;
     readonly frames: number;
     readonly faces: number;
-    readonly slices: number = 0;
+    readonly slices: number = 1;
 
     readonly textures: VTF_Texture[][][][];
 
@@ -563,6 +563,21 @@ export class VTF {
 
         }
 
+        const readLowresTexture = (): VTF_Texture | null => {
+
+            if(this.lowresWidth == 0 || this.lowresHeight == 0) return null;
+
+            if(this.lowresFormat != VTF_Format.DXT1) {
+                console.warn(`VTF lowres texture format ${VTF_Format[this.lowresFormat]} is not ${VTF_Format[VTF_Format.DXT1]}`);
+            }
+
+            const texData = reader.readBuffer(VTF_Texture.getTextureSize(this.lowresFormat, this.lowresWidth, this.lowresHeight));
+            const tex = new VTF_Texture(this.lowresFormat, this.lowresWidth, this.lowresHeight, texData);
+
+            return tex;
+
+        }
+
 
         
         // Read textures.
@@ -578,10 +593,23 @@ export class VTF {
             reader.pointer = res_highres.offset;
             this.textures = readTextures();
 
+
+            const res_lowres = resources.find(res => res.tag == VTF_Resource.LowRes);
+
+            if(res_lowres) {
+
+                reader.pointer = res_lowres.offset;
+                this.lowresTexture = readLowresTexture();
+
+            }
+
         } else {
 
-            // TODO - Support non-resource format.
-            throw new Error('TODO - VTF support for non-resource format.');
+            reader.pointer = headerSize;
+
+            this.lowresTexture = readLowresTexture();
+
+            this.textures = readTextures();
 
         }
 
@@ -598,10 +626,35 @@ export class VTF {
         return this.textures[mipmap][frame][face][slice];
     }
 
+    getMipmapThatIsAtleastSize(width: number, height: number): number {
+        let mipmap = 0;
+        let mipWidth = Infinity;
+        let mipHeight = Infinity;
+        do {
+
+        } while(mipWidth > width && mipHeight > height);
+        return mipmap;
+    }
+
     static async getLowRes(blob: Blob): Promise<VTF_Texture | null> {
-        console.warn(`Getting lowres image information from VTF texture is currently unsupported.`);
-        // TODO - Implement getting thumbnail data from texture.
+        // console.warn(`Getting lowres image information from VTF texture is currently unsupported.`);
+        // // TODO - Implement getting thumbnail data from texture.
+        // return null;
+
+        // TODO - Get lowres texture without loading the whole texture.
+        const vtf = new VTF(await blob.arrayBuffer());
+        return vtf.lowresTexture;
+
+    }
+
+    static async getThumbnail(blob: Blob): Promise<VTF_Texture | null> {
+
+        const lowres = await VTF.getLowRes(blob);
+        if(lowres) return lowres;
+
+        // TODO - Return lowest mipmap texture that is at least 16x16.
         return null;
+
     }
 
 }
