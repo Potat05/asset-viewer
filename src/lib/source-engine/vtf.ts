@@ -209,11 +209,13 @@ class VTF_Texture {
     static getTextureSize(format: VTF_Format, width: number, height: number): number {
 
         function bcNearestSize(size: number): number {
-            if(size < 4) return 4;
+            // if(size < 4) return 4;
             return Math.ceil(size / 4) * 4;
         }
 
         switch(format) {
+            case VTF_Format.NONE:
+                return 0;
             case VTF_Format.DXT1:
             case VTF_Format.DXT1_ONEBITALPHA:
                 return (bcNearestSize(width) * bcNearestSize(height)) / 2;
@@ -225,6 +227,7 @@ class VTF_Texture {
             case VTF_Format.P8:
                 return width * height;
             case VTF_Format.BGR565:
+            case VTF_Format.BGRX5551:
             case VTF_Format.BGRA4444:
             case VTF_Format.BGRA5551:
             case VTF_Format.IA88:
@@ -270,22 +273,22 @@ class VTF_Texture {
                 }
                 return img; }
 
-            case VTF_Format.BGR888: {
-                const img = new ImageData(this.width, this.height);
-                for(let i = 0; i < this.width * this.height; i++) {
-                    img.data[i*4+0] = this.data[i*3+3];
-                    img.data[i*4+1] = this.data[i*3+2];
-                    img.data[i*4+2] = this.data[i*3+1];
-                    img.data[i*4+3] = 255;
-                }
-                return img; }
-
             case VTF_Format.RGB888: {
                 const img = new ImageData(this.width, this.height);
                 for(let i = 0; i < this.width * this.height; i++) {
                     img.data[i*4+0] = this.data[i*3+0];
                     img.data[i*4+1] = this.data[i*3+1];
                     img.data[i*4+2] = this.data[i*3+2];
+                    img.data[i*4+3] = 255;
+                }
+                return img; }
+
+            case VTF_Format.BGR888: {
+                const img = new ImageData(this.width, this.height);
+                for(let i = 0; i < this.width * this.height; i++) {
+                    img.data[i*4+0] = this.data[i*3+3];
+                    img.data[i*4+1] = this.data[i*3+2];
+                    img.data[i*4+2] = this.data[i*3+1];
                     img.data[i*4+3] = 255;
                 }
                 return img; }
@@ -302,6 +305,16 @@ class VTF_Texture {
                 }
                 return img; }
 
+            case VTF_Format.I8: {
+                const img = new ImageData(this.width, this.height);
+                for(let i = 0; i < this.width * this.height; i++) {
+                    img.data[i*4+0] = this.data[i];
+                    img.data[i*4+1] = this.data[i];
+                    img.data[i*4+2] = this.data[i];
+                    img.data[i*4+3] = 255;
+                }
+                return img; }
+
             case VTF_Format.BGRA8888: {
                 const img = new ImageData(this.width, this.height);
                 for(let i = 0; i < this.width * this.height; i++) {
@@ -310,7 +323,7 @@ class VTF_Texture {
                     img.data[i*4+2] = this.data[i*4+0];
                     img.data[i*4+3] = this.data[i*4+3];
                 }
-                return img }
+                return img; }
 
             case VTF_Format.DXT1: // This is always transparent?
             case VTF_Format.DXT1_ONEBITALPHA:
@@ -321,6 +334,18 @@ class VTF_Texture {
 
             case VTF_Format.DXT5:
                 return BC2_BC3_Decode(this.data, this.width, this.height, false);
+            
+            case VTF_Format.BGRA5551: {
+                const data16 = new Uint16Array(this.data.buffer);
+                const img = new ImageData(this.width, this.height);
+                for(let i = 0; i < this.width * this.height; i++) {
+                    const value = data16[i];
+                    img.data[i*4+0] = (value & 0b01111100_00000000) >> 7;
+                    img.data[i*4+1] = (value & 0b00000011_11100000) >> 2;
+                    img.data[i*4+2] = (value & 0b00000000_00011111) << 3;
+                    img.data[i*4+3] = (value & 0b10000000_00000000) ? 255 : 0;
+                }
+                return img; }
 
             default:
                 throw new Error(`Unknown texture format. ${this.format}`);
@@ -424,16 +449,106 @@ enum VTF_Resource {
 
 
 
+class VTF_Reader extends DataReader {
+
+    readHeaderHead() {
+        this.assertMagic('VTF\0');
+
+        const versionMajor = this.readNumber('Uint32');
+        const versionMinor = this.readNumber('Uint32');
+
+        return {
+            version: parseFloat(`${versionMajor}.${versionMinor}`),
+            headerSize: this.readNumber('Uint32')
+        }
+    }
+
+    readResource() {
+        return {
+            tag: this.readString(3, 'ascii'),
+            flags: this.readNumber('Uint8'),
+            offset: this.readNumber('Uint32')
+        }
+    }
+
+    readHeader(version: number) {
+        
+        const width = this.readNumber('Uint16');
+        const height = this.readNumber('Uint16');
+        
+        const flags = this.readNumber('Uint32');
+
+        const frames = this.readNumber('Uint16');
+        const firstFrame = this.readNumber('Int16');
+
+        this.pointer += 4;
+
+        const reflectivity = {
+            r: this.readNumber('Float32'),
+            g: this.readNumber('Float32'),
+            b: this.readNumber('Float32')
+        }
+
+        this.pointer += 4;
+
+        const bumpmapScale = this.readNumber('Float32');
+
+        const format = this.readNumber('Int32');
+
+        const mipmaps = this.readNumber('Uint8');
+
+        const lowresFormat = this.readNumber('Int32');
+        const lowresWidth = this.readNumber('Uint8');
+        const lowresHeight = this.readNumber('Uint8');
+
+        const faces = (flags & VTF_Flags.ENVMAP) ? (firstFrame == -1 ? 7 : 6) : 1;
+
+        const slices = (version >= 7.2) ? this.readNumber('Uint16') : 1;
+
+        let resourceFormat: boolean = false;
+        let resources: { tag: string, flags: number, offset: number }[] = [];
+
+        if(version >= 7.3) {
+
+            this.pointer += 3;
+
+            resourceFormat = true;
+            const numResources = this.readNumber('Uint32');
+
+            this.pointer += 8;
+
+            resources = this.readArray(this.readResource, numResources);
+
+        }
+
+
+
+        return { width, height, flags, frames, firstFrame, reflectivity, bumpmapScale, format, mipmaps, lowresFormat, lowresWidth, lowresHeight, faces, slices, resourceFormat, resources };
+
+    }
+
+    readTexture(format: VTF_Format, width: number, height: number): VTF_Texture {
+        const texData = this.readBuffer(VTF_Texture.getTextureSize(format, width, height));
+        const tex = new VTF_Texture(format, width, height, texData);
+        return tex;
+    }
+
+}
+
+
+
+function getMipSize(width: number, height: number, mipmap: number): [ number, number ] {
+    return [
+        width >> mipmap,
+        height >> mipmap
+    ];
+}
+
+
+
 export class VTF {
 
-    readonly versionMajor: number;
-    readonly versionMinor: number;
-
-    isAtleastVersion(major: number, minor: number): boolean {
-        if(this.versionMajor > major) return true;
-        if(this.versionMajor < major) return false;
-        return this.versionMinor >= minor;
-    }
+    readonly version: number;
 
     readonly format: VTF_Format;
 
@@ -463,76 +578,28 @@ export class VTF {
 
     constructor(buffer: ArrayBuffer) {
 
-        const reader = new DataReader(buffer);
+        const reader = new VTF_Reader(buffer);
 
+        const headerHead = reader.readHeaderHead();
 
+        this.version = headerHead.version;
 
-        // Read header.
+        const header = reader.readHeader(this.version);
 
-        reader.assertMagic('VTF\0');
-
-        this.versionMajor = reader.readNumber('Uint32');
-        this.versionMinor = reader.readNumber('Uint32');
-
-        const headerSize = reader.readNumber('Uint32');
-
-        this.width = reader.readNumber('Uint16');
-        this.height = reader.readNumber('Uint16');
-        
-        this.flags = reader.readNumber('Uint32');
-
-        this.frames = reader.readNumber('Uint16');
-        this.firstFrame = reader.readNumber('Int16');
-
-        reader.pointer += 4;
-
-        this.reflectivity = {
-            r: reader.readNumber('Float32'),
-            g: reader.readNumber('Float32'),
-            b: reader.readNumber('Float32')
-        }
-
-        reader.pointer += 4;
-
-        this.bumpmapScale = reader.readNumber('Float32');
-
-        this.format = reader.readNumber('Uint32');
-
-        this.mipmaps = reader.readNumber('Uint8');
-
-        this.lowresFormat = reader.readNumber('Uint32');
-        this.lowresWidth = reader.readNumber('Uint8');
-        this.lowresHeight = reader.readNumber('Uint8');
-
-        this.faces = (this.flags & VTF_Flags.ENVMAP) ? (this.firstFrame == -1 ? 7 : 6) : 1;
-
-        if(this.isAtleastVersion(7, 2)) {
-
-            this.slices = reader.readNumber('Uint16');
-
-        }
-
-        let resourceFormat: boolean = false;
-        let resources: { tag: string, flags: number, offset: number }[] = [];
-
-        if(this.isAtleastVersion(7, 3)) {
-
-            reader.pointer += 3;
-
-            resourceFormat = true;
-            const numResources = reader.readNumber('Uint32');
-
-            reader.pointer += 8;
-
-            resources = reader.readArray(() => {
-                return {
-                    tag: reader.readString(3, 'ascii'),
-                    flags: reader.readNumber('Uint8'),
-                    offset: reader.readNumber('Uint32')
-                }
-            }, numResources);
-
-        }
+        this.width = header.width;
+        this.height = header.height;
+        this.flags = header.flags;
+        this.frames = header.frames;
+        this.firstFrame = header.firstFrame;
+        this.reflectivity = header.reflectivity;
+        this.bumpmapScale = header.bumpmapScale;
+        this.format = header.format;
+        this.mipmaps = header.mipmaps;
+        this.lowresFormat = header.lowresFormat;
+        this.lowresWidth = header.lowresWidth;
+        this.lowresHeight = header.lowresHeight;
+        this.faces = header.faces;
+        this.slices = header.slices;
 
 
 
@@ -549,8 +616,7 @@ export class VTF {
                         for(let slice = 0; slice < this.slices; slice++) {
 
                             const [ width, height ] = this.getSize(mipmap);
-                            const texData = reader.readBuffer(VTF_Texture.getTextureSize(this.format, width, height));
-                            const tex = new VTF_Texture(this.format, width, height, texData);
+                            const tex = reader.readTexture(this.format, width, height);
 
                             textures[mipmap][frame][face][slice] = tex;
 
@@ -565,14 +631,13 @@ export class VTF {
 
         const readLowresTexture = (): VTF_Texture | null => {
 
-            if(this.lowresWidth == 0 || this.lowresHeight == 0) return null;
+            if(this.lowresWidth == 0 || this.lowresHeight == 0 || this.lowresFormat == VTF_Format.NONE) return null;
 
             if(this.lowresFormat != VTF_Format.DXT1) {
                 console.warn(`VTF lowres texture format ${VTF_Format[this.lowresFormat]} is not ${VTF_Format[VTF_Format.DXT1]}`);
             }
 
-            const texData = reader.readBuffer(VTF_Texture.getTextureSize(this.lowresFormat, this.lowresWidth, this.lowresHeight));
-            const tex = new VTF_Texture(this.lowresFormat, this.lowresWidth, this.lowresHeight, texData);
+            const tex = reader.readTexture(this.lowresFormat, this.lowresWidth, this.lowresHeight);
 
             return tex;
 
@@ -582,9 +647,9 @@ export class VTF {
         
         // Read textures.
 
-        if(resourceFormat) {
+        if(header.resourceFormat) {
 
-            const res_highres = resources.find(res => res.tag == VTF_Resource.HighRes);
+            const res_highres = header.resources.find(res => res.tag == VTF_Resource.HighRes);
 
             if(!res_highres) {
                 throw new Error('VTF resource format has no high resolution texture.');
@@ -594,7 +659,7 @@ export class VTF {
             this.textures = readTextures();
 
 
-            const res_lowres = resources.find(res => res.tag == VTF_Resource.LowRes);
+            const res_lowres = header.resources.find(res => res.tag == VTF_Resource.LowRes);
 
             if(res_lowres) {
 
@@ -605,7 +670,7 @@ export class VTF {
 
         } else {
 
-            reader.pointer = headerSize;
+            reader.pointer = headerHead.headerSize;
 
             this.lowresTexture = readLowresTexture();
 
@@ -616,40 +681,53 @@ export class VTF {
     }
 
     getSize(mipmap: number): [ number, number ] {
-        return [
-            this.width >> mipmap,
-            this.height >> mipmap
-        ];
+        return getMipSize(this.width, this.height, mipmap);
     }
 
     getTexture(mipmap: number = 0, frame: number = 0, face: number = 0, slice: number = 0): VTF_Texture {
         return this.textures[mipmap][frame][face][slice];
     }
 
-    static async getLowRes(blob: Blob): Promise<VTF_Texture | null> {
-        // console.warn(`Getting lowres image information from VTF texture is currently unsupported.`);
-        // // TODO - Implement getting thumbnail data from texture.
-        // return null;
+    static async getThumbnail(blob: Blob, minWidth: number, minHeight: number): Promise<VTF_Texture | null> {
+        // TODO: Clean this shit up.
+        const reader = new VTF_Reader();
 
-        // TODO - Get lowres texture without loading the whole texture.
-        const vtf = new VTF(await blob.arrayBuffer());
-        return vtf.lowresTexture;
+        reader.loadData(await blob.slice(0, 16).arrayBuffer());
+        const headerHead = reader.readHeaderHead();
 
-    }
+        reader.loadData(await blob.slice(0, headerHead.headerSize).arrayBuffer(), reader.pointer);
+        const header = reader.readHeader(headerHead.version);
 
-    static async getThumbnail(blob: Blob): Promise<VTF_Texture | null> {
+        let offset = (header.resourceFormat ? (header.resources.find(res => res.tag == VTF_Resource.HighRes)?.offset ?? -1) : (headerHead.headerSize + VTF_Texture.getTextureSize(header.lowresFormat, header.lowresWidth, header.lowresHeight)))
 
-        const lowres = await VTF.getLowRes(blob);
-        if(lowres) return lowres;
-
-        const vtf = new VTF(await blob.arrayBuffer());
-        let mipmap = vtf.mipmaps - 1;
-        let [ width, height ] = vtf.getSize(mipmap);
-        while(width <= 16 && height <= 16 && mipmap > 0) {
-            [ width, height ] = vtf.getSize(mipmap);
+        if(offset == -1) {
+            throw new Error('VTF no highres texture.');
         }
-        console.log(width, height);
-        return vtf.getTexture(mipmap);
+
+        // Go through each texture, find the one that fits the requirements.
+        for(let mipmap = header.mipmaps - 1; mipmap >= 0; mipmap--) {
+            for(let frame = 0; frame < header.frames; frame++) {
+                for(let face = 0; face < header.faces; face++) {
+                    for(let slice = 0; slice < header.slices; slice++) {
+
+                        const [ width, height ] = getMipSize(header.width, header.height, mipmap);
+                        const size = VTF_Texture.getTextureSize(header.format, width, height);
+                        if(width < minWidth || height < minHeight) {
+                            offset += size;
+                            continue;
+                        }
+
+                        reader.loadData(await blob.slice(offset, offset + size).arrayBuffer());
+                        const tex = reader.readTexture(header.format, width, height);
+
+                        return tex;
+
+                    }
+                }
+            }
+        }
+
+        return null;
 
     }
 

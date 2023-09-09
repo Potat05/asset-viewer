@@ -22,8 +22,6 @@ const viewer: Viewer = {
 
             const vtf = new VTF(await entry.buffer());
 
-            console.log(vtf);
-
             const tex = vtf.getTexture();
 
             const texImg = tex.getImageData();
@@ -41,7 +39,7 @@ const viewer: Viewer = {
 
         if(entry.type == fsEntry.File) {
 
-            const tex = await VTF.getThumbnail(await entry.blob())
+            const tex = await VTF.getThumbnail(await entry.blob(), 16, 16);
 
             if(tex == null) return '/asset-viewer/bootstrap-icons/file-earmark-image.svg';
 
