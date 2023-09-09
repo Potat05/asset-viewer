@@ -2,6 +2,7 @@ import { fsEntry } from "$lib/FileSystem";
 import type { Viewer } from "$lib/Viewer";
 import { VTF } from "$lib/source-engine/vtf";
 import { ImageUtils } from "$lib/ImageUtils";
+import { WebpAnimationBuilder } from "$lib/Webp";
 
 const viewer: Viewer = {
     namespace: 'source-engine.vtf',
@@ -22,13 +23,37 @@ const viewer: Viewer = {
 
             const vtf = new VTF(await entry.buffer());
 
-            const tex = vtf.getTexture();
+            for(let mipmap = 0; mipmap < vtf.mipmaps; mipmap++) {
+    
+                const img = document.createElement('img');
+                target.appendChild(img);
+    
+                if(vtf.frames == 0) {
+    
+                    const tex = vtf.getTexture(mipmap);
+    
+                    img.src = ImageUtils.imgData2url(tex.getImageData());
+    
+                } else {
 
-            const texImg = tex.getImageData();
-            const src = ImageUtils.imgData2url(texImg);
-            const img = document.createElement('img');
-            img.src = src;
-            target.appendChild(img);
+                    const [ width, height ] = vtf.getSize(mipmap);
+    
+                    const builder = new WebpAnimationBuilder({
+                        canvasWidth: width,
+                        canvasHeight: height,
+                        defaultFrameDurationMs: 1000 / 7
+                    });
+    
+                    for(let frame = 0; frame < vtf.frames; frame++) {
+                        const tex = vtf.getTexture(mipmap, frame);
+                        builder.addFrame(tex.getImageData());
+                    }
+    
+                    img.src = builder.generateAnimationURL();
+    
+                }
+
+            }
 
         } else {
             throw new Error('Tried to create vtf viewer with directory.');
