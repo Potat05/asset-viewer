@@ -626,16 +626,6 @@ export class VTF {
         return this.textures[mipmap][frame][face][slice];
     }
 
-    getMipmapThatIsAtleastSize(width: number, height: number): number {
-        let mipmap = 0;
-        let mipWidth = Infinity;
-        let mipHeight = Infinity;
-        do {
-
-        } while(mipWidth > width && mipHeight > height);
-        return mipmap;
-    }
-
     static async getLowRes(blob: Blob): Promise<VTF_Texture | null> {
         // console.warn(`Getting lowres image information from VTF texture is currently unsupported.`);
         // // TODO - Implement getting thumbnail data from texture.
@@ -652,8 +642,14 @@ export class VTF {
         const lowres = await VTF.getLowRes(blob);
         if(lowres) return lowres;
 
-        // TODO - Return lowest mipmap texture that is at least 16x16.
-        return null;
+        const vtf = new VTF(await blob.arrayBuffer());
+        let mipmap = vtf.mipmaps - 1;
+        let [ width, height ] = vtf.getSize(mipmap);
+        while(width <= 16 && height <= 16 && mipmap > 0) {
+            [ width, height ] = vtf.getSize(mipmap);
+        }
+        console.log(width, height);
+        return vtf.getTexture(mipmap);
 
     }
 
