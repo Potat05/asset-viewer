@@ -70,5 +70,5 @@ Drag and drop a directory onto the window.
 [PE-bear](https://github.com/hasherezade/pe-bear/), Easy to use UI to explore executable (PE) files.  
 [Kaitai Struct](http://formats.kaitai.io), A lot of file format specifications with block diagrams.  
 [CPython](https://github.com/python/cpython), Has Python implementations of various things.  
-[McGill University MIDI Documentation](http://www.music.mcgill.ca/~ich/classes/mumt306/StandardMIDIfileformat.html), Documentation for the MIDI file format.
-[Valve Developer Community](https://developer.valvesoftware.com/wiki/Main_Page), An absurd amount of great documentation on Source engine related stuff.
+[McGill University MIDI Documentation](http://www.music.mcgill.ca/~ich/classes/mumt306/StandardMIDIfileformat.html), Documentation for the MIDI file format.  
+[Valve Developer Community](https://developer.valvesoftware.com/wiki/Main_Page), An absurd amount of great documentation on Source engine related stuff.  
