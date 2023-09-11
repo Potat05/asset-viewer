@@ -81,6 +81,17 @@ export namespace Utils {
         return arr;
     }
 
+    export async function asyncFilter<T>(arr: T[], callbackfn: (value: T) => Promise<boolean>): Promise<T[]> {
+        return (await Promise.all(
+            arr.map(async value => {
+                return {
+                    value,
+                    success: await callbackfn(value)
+                }
+            })
+        )).filter(entry => entry.success).map(entry => entry.value);
+    }
+
 
 
 
