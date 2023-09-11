@@ -51,10 +51,6 @@ Drag and drop a directory onto the window.
     * Visualization
     * Soundfont 2
 
-## TODO
-
-* Use $lib/ImportRegistry to dynamically load viewers.
-
 ## Using These Things
 
 [Svelte](https://svelte.dev/) as the framework.  

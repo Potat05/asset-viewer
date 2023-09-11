@@ -1,13 +1,19 @@
 
 import { fsUtils, type fsDirectory, type fsFile } from "$lib/FileSystem";
+import { addTab } from "./Tabs";
+import { Utils } from "./Utils";
+import { viewerRegistry } from "./Viewers";
 
 
 
+// TODO: Refactor this interface, it's dumb in its current state.
 export interface Viewer {
 
     namespace: string;
     priority: number;
 
+    // This should be optional now that the viewer registry handles this instead of the viewer itself.
+    // Also should be optional to return promise or not.
     isValid: (entry: fsFile | fsDirectory) => Promise<boolean>;
     transform?: (entry: fsFile | fsDirectory) => Promise<fsFile | fsDirectory | null>;
     createViewer?: (entry: fsFile | fsDirectory, target: Element | Document | ShadowRoot) => Promise<void>;
@@ -21,33 +27,22 @@ export interface Viewable {
 
 
 
-export let viewerRegistry: Viewer[] = [];
-
-
-
-export function createNewViewer(viewer: Viewer) {
-    viewerRegistry.push(viewer);
-
-    viewerRegistry = viewerRegistry.sort((a, b) => b.priority - a.priority);
-}
-
-
-
-
-
 export async function findViewers(entry: fsFile | fsDirectory) {
 
     if(entry.viewer != null) return;
 
-    for(const viewer of viewerRegistry) {
-        if(await viewer.isValid(entry)) {
-            entry.viewer = viewer;
-            break;
-        }
-    }
+    let viewers = await viewerRegistry.getAllImports(entry);
 
-    if(entry.viewer != null) {
-        
+    viewers = await Utils.asyncFilter(viewers, async viewer => await viewer.isValid(entry));
+
+    const viewer = viewers.sort((a, b) => b.priority - a.priority).at(0);
+
+    if(!viewer) return;
+
+    if(await viewer.isValid(entry)) {
+
+        entry.viewer = viewer;
+
         console.debug(`Found viewer "${entry.viewer.namespace}" for "${fsUtils.getPath(entry)}"`);
 
         if(entry.viewer.transform) {
@@ -95,55 +90,3 @@ export async function viewerIcon(entry: fsFile | fsDirectory): Promise<string | 
 }
 
 
-
-
-
-import TextViewer from "./viewers/basic/text";
-createNewViewer(TextViewer);
-
-import ImageViewer from "./viewers/basic/image";
-createNewViewer(ImageViewer);
-
-import VideoViewer from "./viewers/basic/video";
-createNewViewer(VideoViewer);
-
-import CodeViewer from "./viewers/basic/code";
-createNewViewer(CodeViewer);
-
-import ZipViewer from "./viewers/basic/zip";
-createNewViewer(ZipViewer);
-
-import MarkdownViewer from "./viewers/basic/markdown";
-createNewViewer(MarkdownViewer);
-
-
-
-import ExecutableViewer from "./viewers/advanced/executable";
-createNewViewer(ExecutableViewer);
-
-
-
-import RenPyArchiveViewer from "./viewers/renpy/archive";
-createNewViewer(RenPyArchiveViewer);
-
-import RenPyScriptViewer from "./viewers/renpy/script";
-createNewViewer(RenPyScriptViewer);
-
-
-
-import MinecraftNBTViewer from "./viewers/minecraft/nbt";
-createNewViewer(MinecraftNBTViewer);
-
-import MinecraftWorldViewer from "./viewers/minecraft/world";
-import { addTab } from "./Tabs";
-createNewViewer(MinecraftWorldViewer);
-
-
-
-import MidiMidiViewer from "./viewers/midi/midi";
-createNewViewer(MidiMidiViewer);
-
-
-
-import SourceEngineVTFViewer from "./viewers/source-engine/vtf";
-createNewViewer(SourceEngineVTFViewer);
