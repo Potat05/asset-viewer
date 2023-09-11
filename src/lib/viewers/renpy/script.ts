@@ -21,14 +21,14 @@ const viewer: Viewer = {
 
             new Code({ target, props: {
                 code: decompileScript(loadScript(await entry.buffer())),
-                langName: 'python'
+                langname: 'python'
             } });
 
         } else if(entry.name.endsWith('.rpy')) {
 
             new Code({ target, props: {
                 code: await (await entry.blob()).text(),
-                langName: 'python'
+                langname: 'python'
             } });
 
         }

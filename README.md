@@ -53,8 +53,7 @@ Drag and drop a directory onto the window.
 
 ## TODO
 
-* Dynamically load viewers
-    * Instead of having every viewer loaded at once, have a list of file extensions and their viewers they go with then when a file is detected with one of those exensions load that viewer.
+* Use $lib/ImportRegistry to dynamically load viewers.
 
 ## Using These Things
 

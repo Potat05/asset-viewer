@@ -5,7 +5,7 @@
     import { markedHighlight } from "marked-highlight";
     import { onDestroy, onMount } from "svelte";
     import hljs from "highlight.js/lib/core";
-    import { getLangFromName } from "$lib/Languages";
+    import { languageRegistry } from "$lib/Languages";
 
     // TODO - Instead of using an observer to add ids to header elements, use a Marked extension.
 
@@ -41,16 +41,15 @@
         markedHighlight({
             langPrefix: 'hljs language-',
             async: true,
-            highlight: async (code, langName) => {
+            highlight: async (code, langname) => {
 
-                const langContainer = getLangFromName(langName.toLowerCase());
+                const lang = await languageRegistry.get({ type: 'langname', langname });
 
-                if(!langContainer) return code;
+                if(lang == null) return code;
+                
+                hljs.registerLanguage(lang.extra, lang.import);
 
-                const lang = await langContainer.get();
-                hljs.registerLanguage(langContainer.name, lang);
-
-                return hljs.highlight(code, { language: langContainer.name }).value;
+                return hljs.highlight(code, { language: lang.extra }).value;
 
             }
         })

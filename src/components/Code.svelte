@@ -1,28 +1,29 @@
 
 <script lang="ts">
     import hljs from "highlight.js";
-    import { getLangFromName } from "$lib/Languages";
+    import { languageRegistry } from "$lib/Languages";
     import { onMount } from "svelte";
 
     export let code: string;
 
-    export let langName: string;
+    export let langname: string;
 
-    $: lowerLangName = langName.toLowerCase();
+    $: lowerLangName = langname.toLowerCase();
 
     let html: string;
 
     onMount(async () => {
-        const langContainer = getLangFromName(lowerLangName);
 
-        if(!langContainer) {
-            throw new Error('Catastrophic error on finding language.');
+        const lang = await languageRegistry.get({ type: 'langname', langname });
+
+        if(lang == null) {
+            throw new Error(`Could not find language for "${langname}".`);
         }
 
-        const lang = await langContainer.get();
-        hljs.registerLanguage(langContainer.name, lang);
+        hljs.registerLanguage(lang.extra, lang.import);
 
-        html = hljs.highlight(code, { language: langContainer.name }).value;
+        html = hljs.highlight(code, { language: lang.extra }).value;
+        
     });
 
 </script>

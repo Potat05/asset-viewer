@@ -24,7 +24,7 @@ const viewer: Viewer = {
     createViewer: async (entry, target) => {
 
         if(entry.type == fsEntry.File) {
-            new Viewer_Text({ target, props: { entry, langName: 'plaintext' } });
+            new Viewer_Text({ target, props: { entry, langname: 'plaintext' } });
         } else {
             throw new Error('Tried to create text viewer with directory.');
         }

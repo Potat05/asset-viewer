@@ -1,67 +1,41 @@
 
-import type { LanguageFn } from "highlight.js"
+import type { LanguageFn } from "highlight.js";
+import { ImportRegistry } from "$lib/ImportRegistry";
 
 
 
-type Language = {
-    match: RegExp;
-    name: string;
-    get: () => Promise<LanguageFn>;
+type LangValidationType = {
+    type: 'filename',
+    filename: string;
+} | {
+    type: 'langname',
+    langname: string;
 }
 
-const LANGUAGES: Language[] = [];
-
-function addLang(match: RegExp, name: string, get: () => Promise<LanguageFn>): void {
-    LANGUAGES.push({
-        match,
-        name,
-        get
-    });
-}
-
-export function getLangFromFilename(filename: string): Language | null {
-
-    for(const lang of LANGUAGES) {
-        if(lang.match.test(filename)) {
-            return lang;
+function validateFunc(regex: RegExp, name: string): (value: LangValidationType) => boolean {
+    return (value: LangValidationType) => {
+        if(value.type == 'filename') {
+            return regex.test(value.filename);
+        } else if(value.type == 'langname') {
+            return (value.langname.toLowerCase() == name);
         }
+        return false;
     }
-
-    return null;
-
-}
-
-export function getLangFromName(name: string): Language | null {
-
-    for(const lang of LANGUAGES) {
-        if(lang.name == name) {
-            return lang;
-        }
-    }
-    
-    return null;
-
 }
 
 
 
-// Plaintext never matches on filename.
-addLang(/$-/, 'plaintext', async () => (await import("highlight.js/lib/languages/plaintext")).default);
+export const languageRegistry = new ImportRegistry<LangValidationType, LanguageFn, string>();
 
-addLang(/\.m?js$/, 'javascript', async () => (await import("highlight.js/lib/languages/javascript")).default);
 
-addLang(/\.(?:d\.)?ts$/, 'typescript', async () => (await import("highlight.js/lib/languages/typescript")).default);
 
-addLang(/\.json$/, 'json', async () => (await import("highlight.js/lib/languages/json")).default);
-
-addLang(/\.(?:xml|html|svelte)$/, 'xml', async () => (await import("highlight.js/lib/languages/xml")).default);
-
-addLang(/\.md$/, 'markdown', async () => (await import("highlight.js/lib/languages/markdown")).default);
-
-addLang(/\.py$/, 'python', async () => (await import("highlight.js/lib/languages/python")).default);
-
-addLang(/\.sh$/, 'bash', async () => (await import("highlight.js/lib/languages/bash")).default);
-
-addLang(/\.(?:c|cpp|h|hpp|glsl|vsh|fsh)$/, 'cpp', async () => (await import("highlight.js/lib/languages/cpp")).default);
-
-addLang(/\.rs$/, 'rust', async () => (await import("highlight.js/lib/languages/rust")).default);
+languageRegistry.addRegistryItem(validateFunc(/$-/, 'plaintext'), () => import("highlight.js/lib/languages/plaintext"), 'plaintext'); // Never matches on filename.
+languageRegistry.addRegistryItem(validateFunc(/\.m?js$/, 'javascript'), () => import("highlight.js/lib/languages/javascript"), 'javascript');
+languageRegistry.addRegistryItem(validateFunc(/\.(?:d\.)?ts$/, 'typescript'), () => import("highlight.js/lib/languages/typescript"), 'typescript');
+languageRegistry.addRegistryItem(validateFunc(/\.json$/, 'json'), () => import("highlight.js/lib/languages/json"), 'json');
+languageRegistry.addRegistryItem(validateFunc(/\.(?:xml|html|svelte)$/, 'xml'), () => import("highlight.js/lib/languages/xml"), 'xml');
+languageRegistry.addRegistryItem(validateFunc(/\.md$/, 'markdown'), () => import("highlight.js/lib/languages/markdown"), 'markdown');
+languageRegistry.addRegistryItem(validateFunc(/\.py$/, 'python'), () => import("highlight.js/lib/languages/python"), 'python');
+languageRegistry.addRegistryItem(validateFunc(/\.sh$/, 'bash'), () => import("highlight.js/lib/languages/bash"), 'bash');
+languageRegistry.addRegistryItem(validateFunc(/\.(?:c|cpp|h|hpp|glsl|vsh|fsh)$/, 'cpp'), () => import("highlight.js/lib/languages/cpp"), 'cpp');
+languageRegistry.addRegistryItem(validateFunc(/\.rs$/, 'rust'), () => import("highlight.js/lib/languages/rust"), 'rust');

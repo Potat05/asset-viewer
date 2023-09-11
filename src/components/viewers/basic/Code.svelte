@@ -5,7 +5,7 @@
 
     export let entry: fsFile;
 
-    export let langName: string;
+    export let langname: string;
 
 </script>
 
@@ -13,7 +13,7 @@
 
     {#await blob.text() then code}
 
-        <Code code={code} langName={langName} />
+        <Code {code} {langname} />
 
     {/await}
 
