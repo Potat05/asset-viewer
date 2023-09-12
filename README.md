@@ -1,55 +1,17 @@
-# [asset-viewer](https://potat05.github.io/asset-viewer/)
 
-https://potat05.github.io/asset-viewer/
+### [→ Demo here ←](https://potat05.github.io/asset-viewer/)
 
-View and extract a wide variety of file types inside the browser.
+# [asset-viewer](https://github.com/Potat05/asset-viewer)
 
-Drag and drop a directory onto the window.
+View a variety of general file formats & game file formats inside the browser.
+
+A list of viewers is in the [demo](https://potat05.github.io/asset-viewer/#viewers).
 
 ## Develop
 
 1. Clone this repository
 2. Install dependencies `npm install`
 3. Run development server `npm run dev -- --start`
-
-## Viewers
-
-* Basic
-    * Text
-    * Image
-    * Video
-    * Code
-    * Zip Archive
-    * Markdown
-* Advanced
-    * Executable (Icon)
-* Midi
-    * Midi player
-* Games
-    * Minecraft
-        * NBT viewer
-        * World Viewer
-    * Ren'Py game engine
-        * Archive
-        * Compiled code
-
-## TODO Viewers
-
-* Basic
-    * Zip64 Archive Support
-* Minecraft
-    * World with resource pack
-* Source engine
-    * Map viewer
-    * Texture viewer
-    * Model viewer
-* Unity engine
-    * (I don't know anything about Unity so fill this out later.)
-* Executable (PE)
-    * x86 disassembler with [iced-x86](https://www.npmjs.com/package/iced-x86)
-* Midi sequence
-    * Visualization
-    * Soundfont 2
 
 ## Using These Things
 
@@ -63,8 +25,12 @@ Drag and drop a directory onto the window.
 
 ## Huge Help
 
-[PE-bear](https://github.com/hasherezade/pe-bear/), Easy to use UI to explore executable (PE) files.  
-[Kaitai Struct](http://formats.kaitai.io), A lot of file format specifications with block diagrams.  
-[CPython](https://github.com/python/cpython), Has Python implementations of various things.  
-[McGill University MIDI Documentation](http://www.music.mcgill.ca/~ich/classes/mumt306/StandardMIDIfileformat.html), Documentation for the MIDI file format.  
-[Valve Developer Community](https://developer.valvesoftware.com/wiki/Main_Page), An absurd amount of great documentation on Source engine related stuff.  
+[PE-bear](https://github.com/hasherezade/pe-bear/), easy to use UI to explore executable (PE) files.  
+[Kaitai Struct](http://formats.kaitai.io), a lot of file format specifications with block diagrams.  
+[CPython](https://github.com/python/cpython), has Python implementations of various things.  
+[McGill University MIDI Documentation](http://www.music.mcgill.ca/~ich/classes/mumt306/StandardMIDIfileformat.html), documentation for the MIDI file format.  
+[Valve Developer Community](https://developer.valvesoftware.com/wiki/Main_Page), an absurd amount of great documentation on Source engine related stuff.  
+
+# Contributing
+
+Contributions are welcome [`CONTRIBUTING.md`](CONTRIBUTING.md);
