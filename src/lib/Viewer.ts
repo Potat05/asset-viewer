@@ -12,8 +12,6 @@ export interface Viewer {
     namespace: string;
     priority: number;
 
-    // This should be optional now that the viewer registry handles this instead of the viewer itself.
-    // Also should be optional to return promise or not.
     isValid?: (entry: fsFile | fsDirectory) => Promise<boolean>;
     transform?: (entry: fsFile | fsDirectory) => Promise<fsFile | fsDirectory | null>;
     createViewer?: (entry: fsFile | fsDirectory, target: Element | Document | ShadowRoot) => Promise<void>;
