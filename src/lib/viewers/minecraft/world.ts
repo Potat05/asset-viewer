@@ -5,18 +5,6 @@ import Viewer_World from "../../../components/viewers/minecraft/World.svelte";
 const viewer: Viewer = {
     namespace: 'minecraft.world',
     priority: 2,
-    isValid: async entry => {
-        if(entry.type != fsEntry.Directory) return false;
-
-        if(entry.parent != null) {
-            if(
-                !entry.parent.name.includes(entry.name) &&
-                entry.parent.name != 'saves'
-            ) return false;
-        }
-
-        return await entry.get('level.dat') !== null;
-    },
     createViewer: async (entry, target) => {
 
         if(entry.type == fsEntry.Directory) {

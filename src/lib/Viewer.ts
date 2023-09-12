@@ -14,7 +14,7 @@ export interface Viewer {
 
     // This should be optional now that the viewer registry handles this instead of the viewer itself.
     // Also should be optional to return promise or not.
-    isValid: (entry: fsFile | fsDirectory) => Promise<boolean>;
+    isValid?: (entry: fsFile | fsDirectory) => Promise<boolean>;
     transform?: (entry: fsFile | fsDirectory) => Promise<fsFile | fsDirectory | null>;
     createViewer?: (entry: fsFile | fsDirectory, target: Element | Document | ShadowRoot) => Promise<void>;
     getIcon?: ((entry: fsFile | fsDirectory) => Promise<string | null>);
@@ -33,23 +33,19 @@ export async function findViewers(entry: fsFile | fsDirectory) {
 
     let viewers = await viewerRegistry.getAllImports(entry);
 
-    viewers = await Utils.asyncFilter(viewers, async viewer => await viewer.isValid(entry));
+    viewers = await Utils.asyncFilter(viewers, async viewer => viewer.isValid ? await viewer.isValid(entry) : true);
 
     const viewer = viewers.sort((a, b) => b.priority - a.priority).at(0);
 
     if(!viewer) return;
 
-    if(await viewer.isValid(entry)) {
+    entry.viewer = viewer;
 
-        entry.viewer = viewer;
+    console.debug(`Found viewer "${entry.viewer.namespace}" for "${fsUtils.getPath(entry)}"`);
 
-        console.debug(`Found viewer "${entry.viewer.namespace}" for "${fsUtils.getPath(entry)}"`);
-
-        if(entry.viewer.transform) {
-            const transform = await entry.viewer.transform(entry);
-            await fsUtils.transform(entry, transform);
-        }
-
+    if(entry.viewer.transform) {
+        const transform = await entry.viewer.transform(entry);
+        await fsUtils.transform(entry, transform);
     }
 
 }

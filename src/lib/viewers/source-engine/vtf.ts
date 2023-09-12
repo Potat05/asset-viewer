@@ -7,16 +7,6 @@ import { WebpAnimationBuilder } from "$lib/Webp";
 const viewer: Viewer = {
     namespace: 'source-engine.vtf',
     priority: 2,
-    isValid: async entry => {
-        if(entry.type != fsEntry.File) return false;
-        if(!entry.name.includes('.vtf')) return false;
-        const blob = await entry.blob();
-        if(blob.size == 0) return true;
-
-        const ident = await blob.slice(0, 4).text();
-
-        return (ident == 'VTF\0');
-    },
     createViewer: async (entry, target) => {
 
         if(entry.type == fsEntry.File) {

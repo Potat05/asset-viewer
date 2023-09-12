@@ -5,9 +5,6 @@ import Viewer_Markdown from "../../../components/viewers/basic/Markdown.svelte";
 const viewer: Viewer = {
     namespace: 'markdown',
     priority: 2,
-    isValid: async entry => {
-        return entry.type == fsEntry.File && entry.name.toLowerCase().endsWith('.md');
-    },
     createViewer: async (entry, target) => {
 
         if(entry.type == fsEntry.File) {

@@ -5,9 +5,6 @@ import { ArchiveReader } from "$lib/renpy/archive";
 const viewer: Viewer = {
     namespace: 'renpy.archive',
     priority: 10,
-    isValid: async entry => {
-        return entry.type == fsEntry.File && entry.name.endsWith('.rpa');
-    },
     transform: async entry => {
 
         if(entry.type != fsEntry.File) {

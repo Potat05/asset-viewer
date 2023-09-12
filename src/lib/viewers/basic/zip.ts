@@ -5,9 +5,6 @@ import { readZip } from "$lib/zip";
 const viewer: Viewer = {
     namespace: 'zip',
     priority: 1,
-    isValid: async entry => {
-        return entry.type == fsEntry.File && entry.name.endsWith('.zip');
-    },
     transform: async entry => {
 
         if(entry.type != fsEntry.File) {

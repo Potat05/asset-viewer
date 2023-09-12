@@ -8,9 +8,6 @@ import Viewer_Code from "../../../components/viewers/basic/Code.svelte";
 const viewer: Viewer = {
     namespace: 'code',
     priority: 1,
-    isValid: async entry => {
-        return entry.type == fsEntry.File && await languageRegistry.valid({ type: 'filename', filename: entry.name });
-    },
     createViewer: async (entry, target) => {
 
         if(entry.type == fsEntry.File) {

@@ -200,9 +200,6 @@ async function extractIcon(file: Blob): Promise<string | undefined> {
 const viewer: Viewer = {
     namespace: 'executable',
     priority: 1,
-    isValid: async entry => {
-        return entry.type == fsEntry.File && entry.name.endsWith('.exe');
-    },
     getIcon: async entry => {
 
         if(entry.type == fsEntry.File) {
