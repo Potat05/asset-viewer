@@ -10,6 +10,7 @@
     * [Games](#games)
         * [Minecraft](#minecraft)
         * [Ren'Py](#ren'py)
+        * [Source Engine](#source_engine)
 * [License](#license)
 
 # Usage
@@ -61,6 +62,11 @@ Use the tabs at the top to navigate viewers.
     * View files inside a Ren'Py archive
 * Compiled Code Viewer
     * Decompile and view the Ren'Py compiled code
+
+### Source Engine
+
+* Valve Texture Format Viewer (.vtf)  
+    * View animated textures.  
 
 # License
 
