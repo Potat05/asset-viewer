@@ -4,11 +4,14 @@
     import { parseMidi } from "$lib/midi/midi";
     import { MidiNote, MidiPlayer } from "$lib/midi/player";
     import { onDestroy, onMount } from "svelte";
+    import OnRemoved from "../../OnRemoved.svelte";
 
     export let entry: fsFile;
 
     let player: MidiPlayer;
     let playerCurrentTick: number = 0;
+
+    let sounds: SoundPlayer;
 
     let playing: boolean = false;
 
@@ -33,64 +36,69 @@
     function stop() {
         playing = false;
 
-        // forEach doesn't work here????
-        while(sounds.length > 0) {
-            const sound = sounds[0];
-            stopSound(sound.note, sound.channel, sound.track);
-        }
+        sounds.stopAll();
 
         clearTimeout(playerTimeout);
     }
 
 
 
-    let ctx: AudioContext;
+    class SoundPlayer {
 
-    let sounds: { gain: GainNode, osc: OscillatorNode, note: MidiNote, channel: number, track: number }[];
+        ctx: AudioContext = new AudioContext();
 
-    function midiNoteToFreq(value: number): number {
-        return 440 * (2 ** ((value - 69) / 12));
-    }
+        sounds: { gain: GainNode, osc: OscillatorNode, note: MidiNote, channel: number, track: number }[] = [];
 
-    function startSound(note: MidiNote, velocity: number, channel: number, track: number) {
-
-        const gain = ctx.createGain();
-        gain.connect(ctx.destination);
-        // Prevent audio popping.
-        gain.gain.value = 0.0001;
-        gain.gain.exponentialRampToValueAtTime(0.0005 * velocity, ctx.currentTime + 0.01);
-        
-        const osc = ctx.createOscillator();
-        osc.connect(gain);
-        osc.type = 'triangle';
-        osc.frequency.value = midiNoteToFreq(note.value);
-        osc.start();
-
-        sounds.push({ gain, osc, note, channel, track });
-
-    }
-
-    function stopSound(note: MidiNote, channel: number, track: number) {
-
-        const soundIndex = sounds.findIndex(s => s.note.value == note.value && s.channel == channel && s.track == track);
-
-        if(soundIndex == -1) {
-            return;
+        static midiNoteToFreq(value: number): number {
+            return 440 * (2 ** ((value - 69) / 12));
         }
 
-        const sound = sounds.splice(soundIndex, 1)[0];
+        start(note: MidiNote, velocity: number, channel: number, track: number): void {
+            const gain = this.ctx.createGain();
+            gain.connect(this.ctx.destination);
+            // Prevent audio popping.
+            gain.gain.value = 0.0001;
+            gain.gain.exponentialRampToValueAtTime(0.0005 * velocity, this.ctx.currentTime + 0.01);
+            
+            const osc = this.ctx.createOscillator();
+            osc.connect(gain);
+            osc.type = 'triangle';
+            osc.frequency.value = SoundPlayer.midiNoteToFreq(note.value);
+            osc.start();
 
-        const { gain, osc } = sound;
+            this.sounds.push({ gain, osc, note, channel, track });
+        }
 
-        // Prevent audio popping.
-        gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.1);
+        stop(note: MidiNote, channel: number, track: number): void {
 
-        setTimeout(() => {
-            gain.disconnect();
-            osc.stop();
-            osc.disconnect();
-        }, 100);
+            const soundIndex = this.sounds.findIndex(s => s.note.value == note.value && s.channel == channel && s.track == track);
+
+            if(soundIndex == -1) {
+                return;
+            }
+
+            const sound = this.sounds.splice(soundIndex, 1)[0];
+
+            const { gain, osc } = sound;
+
+            // Prevent audio popping.
+            gain.gain.setValueAtTime(gain.gain.value, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.1);
+
+            setTimeout(() => {
+                gain.disconnect();
+                osc.stop();
+                osc.disconnect();
+            }, 100);
+
+        }
+
+        stopAll() {
+            while(this.sounds.length > 0) {
+                const sound = this.sounds[0];
+                this.stop(sound.note, sound.channel, sound.track);
+            }
+        }
 
     }
 
@@ -101,18 +109,17 @@
         const parsed = parseMidi(await entry.buffer());
         player = new MidiPlayer(parsed);
 
-        ctx = new AudioContext();
-        sounds = [];
+        sounds = new SoundPlayer();
 
         player.addEventListener('note', async (note, velocity, channel, track) => {
 
             if(velocity > 0) {
 
-                startSound(note, velocity, channel, track)
+                sounds.start(note, velocity, channel, track);
 
             } else {
 
-                stopSound(note, channel, track);
+                sounds.stop(note, channel, track);
 
             }
 
@@ -120,13 +127,12 @@
 
     });
 
-    onDestroy(() => {
-        // TODO - This doesn't work.
-        stop();
-        player.destroyDispatcher();
-    });
-
 </script>
+
+<OnRemoved on:remove={() => {
+    stop();
+    player.destroyDispatcher();
+}} />
 
 {#if player}
 
