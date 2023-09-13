@@ -18,8 +18,8 @@ const viewer: Viewer = {
                 const img = document.createElement('img');
                 target.appendChild(img);
     
-                if(vtf.frames == 0) {
-    
+                if(vtf.frames == 1) {
+
                     const tex = vtf.getTexture(mipmap);
     
                     img.src = ImageUtils.imgData2url(tex.getImageData());
