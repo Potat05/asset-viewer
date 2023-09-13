@@ -31,6 +31,6 @@ A list of viewers is in the [demo](https://potat05.github.io/asset-viewer/#viewe
 [McGill University MIDI Documentation](http://www.music.mcgill.ca/~ich/classes/mumt306/StandardMIDIfileformat.html), documentation for the MIDI file format.  
 [Valve Developer Community](https://developer.valvesoftware.com/wiki/Main_Page), an absurd amount of great documentation on Source engine related stuff.  
 
-# Contributing
+## Contributing
 
 Contributions are welcome [`CONTRIBUTING.md`](CONTRIBUTING.md);
