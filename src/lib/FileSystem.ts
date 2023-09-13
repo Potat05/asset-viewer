@@ -315,6 +315,33 @@ export namespace fsUtils {
 
     }
 
+
+
+
+    export function formatSize(size: number, decimals: number = 2): string {
+        if(decimals < 0) {
+            throw new Error('Format decimal argument.');
+        }
+        if(size < 0) {
+            throw new Error(`Cannot format a negative size.`);
+        }
+
+        if(size == 0) {
+            return '0 Bytes';
+        }
+        if(size == 1) {
+            return '1 Byte';
+        }
+
+        const k = 1024;
+        const sizeStrs = [ 'Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB' ];
+
+        const i = Math.floor(Math.log(size) / Math.log(k));
+
+        return `${parseFloat((size / Math.pow(k, i)).toFixed(decimals))} ${sizeStrs[i]}`;
+
+    }
+
 }
 
 

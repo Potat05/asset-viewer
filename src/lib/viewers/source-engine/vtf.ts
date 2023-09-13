@@ -1,8 +1,38 @@
-import { fsEntry } from "$lib/FileSystem";
+import { fsEntry, fsUtils } from "$lib/FileSystem";
 import type { Viewer } from "$lib/Viewer";
 import { VTF } from "$lib/source-engine/vtf";
 import { ImageUtils } from "$lib/ImageUtils";
 import { WebpAnimationBuilder } from "$lib/Webp";
+import ImageView from "../../../components/ImageView.svelte";
+
+function generateImageFromVTF(vtf: VTF, mipmap: number = 0): string {
+
+    if(vtf.frames == 1) {
+
+        const tex = vtf.getTexture(mipmap);
+
+        return ImageUtils.imgData2url(tex.getImageData())
+
+    } else {
+
+        const [ width, height ] = vtf.getSize(mipmap);
+
+        const builder = new WebpAnimationBuilder({
+            canvasWidth: width,
+            canvasHeight: height,
+            defaultFrameDurationMs: 1000 / 7
+        });
+
+        for(let frame = 0; frame < vtf.frames; frame++) {
+            const tex = vtf.getTexture(mipmap, frame);
+            builder.addFrame(tex.getImageData());
+        }
+
+        return builder.generateAnimationURL();
+
+    }
+
+}
 
 const viewer: Viewer = {
     namespace: 'source-engine.vtf',
@@ -11,39 +41,16 @@ const viewer: Viewer = {
 
         if(entry.type == fsEntry.File) {
 
-            const vtf = new VTF(await entry.buffer());
+            const blob = await entry.blob();
 
-            for(let mipmap = 0; mipmap < vtf.mipmaps; mipmap++) {
-    
-                const img = document.createElement('img');
-                target.appendChild(img);
-    
-                if(vtf.frames == 1) {
-
-                    const tex = vtf.getTexture(mipmap);
-    
-                    img.src = ImageUtils.imgData2url(tex.getImageData());
-    
-                } else {
-
-                    const [ width, height ] = vtf.getSize(mipmap);
-    
-                    const builder = new WebpAnimationBuilder({
-                        canvasWidth: width,
-                        canvasHeight: height,
-                        defaultFrameDurationMs: 1000 / 7
-                    });
-    
-                    for(let frame = 0; frame < vtf.frames; frame++) {
-                        const tex = vtf.getTexture(mipmap, frame);
-                        builder.addFrame(tex.getImageData());
-                    }
-    
-                    img.src = builder.generateAnimationURL();
-    
-                }
-
-            }
+            const vtf = new VTF(await blob.arrayBuffer());
+            
+            new ImageView({ target, props: {
+                    src: generateImageFromVTF(vtf, 0),
+                    size: blob.size,
+                    title: entry.name,
+                    alt: fsUtils.getPath(entry)
+            } });
 
         } else {
             throw new Error('Tried to create vtf viewer with directory.');

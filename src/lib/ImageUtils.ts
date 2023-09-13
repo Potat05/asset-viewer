@@ -65,6 +65,47 @@ export namespace ImageUtils {
 
     }
 
+
+
+    export function isImageLoaded(img: HTMLImageElement): boolean {
+        if(!img.complete) return false;
+        if(img.naturalWidth === 0) return false;
+        return true;
+    }
+
+    /**
+     * If the image is already loaded this resolves instantly.  
+     * @param img - If image was loaded successfully.  
+     */
+    export function awaitImageLoad(img: HTMLImageElement): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+
+            if(isImageLoaded(img)) {
+
+                resolve(true);
+
+            } else {
+
+                function onLoad() {
+                    resolve(true);
+                    img.removeEventListener('load', onLoad);
+                    img.removeEventListener('error', onErr);
+                }
+
+                function onErr() {
+                    reject('Failed to load image.');
+                    img.removeEventListener('load', onLoad);
+                    img.removeEventListener('error', onErr);
+                }
+
+                img.addEventListener('load', onLoad);
+                img.addEventListener('error', onErr);
+
+            }
+
+        });
+    }
+
 }
 
 

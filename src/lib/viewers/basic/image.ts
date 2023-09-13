@@ -1,6 +1,6 @@
-import { fsEntry } from "$lib/FileSystem";
+import { fsEntry, fsUtils } from "$lib/FileSystem";
 import type { Viewer } from "$lib/Viewer";
-import Viewer_Image from "../../../components/viewers/basic/Image.svelte";
+import ImageView from "../../../components/ImageView.svelte";
 
 const viewer: Viewer = {
     namespace: 'image',
@@ -8,7 +8,16 @@ const viewer: Viewer = {
     createViewer: async (entry, target) => {
 
         if(entry.type == fsEntry.File) {
-            new Viewer_Image({ target, props: { entry } });
+
+            const blob = await entry.blob();
+
+            new ImageView({ target, props: {
+                src: URL.createObjectURL(blob),
+                size: blob.size,
+                title: entry.name,
+                alt: fsUtils.getPath(entry),
+            } });
+
         } else {
             throw new Error('Tried to create image viewer with directory.');
         }
