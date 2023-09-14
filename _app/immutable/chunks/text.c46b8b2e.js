@@ -1,0 +1,1 @@
+import{f as t}from"./2.5f3b6209.js";import{C as a}from"./Code.f80e555b.js";const s={namespace:"text",priority:0,createViewer:async(e,r)=>{if(e.type==t.File)new a({target:r,props:{entry:e,langname:"plaintext"}});else throw new Error("Tried to create text viewer with directory.")},getIcon:async()=>"/asset-viewer/bootstrap-icons/file-earmark-text.svg"};export{s as default};
