@@ -28,7 +28,7 @@ enum Compression {
     enhanced_deflated = 9,
     pkware_dcl_imploded = 10,
     bzip2 = 12,
-    lzma = 14, // TODO - Implement this compression, it is still very used and should be implemented.
+    lzma = 14,
     ibm_terse = 18,
     ibm_lz77_z = 19,
     zstandard = 93,
@@ -219,17 +219,33 @@ async function locateEndOfCentralDir(file: Blob): Promise<number> {
 
 
 
-export async function readZip(file: fsFile): Promise<fsDirectory> {
+export async function readZip(blob: Blob, name: string, parent: fsDirectory | null): Promise<fsDirectory>;
+export async function readZip(file: fsFile): Promise<fsDirectory>;
+export async function readZip(): Promise<fsDirectory> {
 
-    const blob = await file.blob();
+    const blobOrFile: Blob | fsFile = arguments[0];
+    let name: string = arguments[1];
+    let parent: fsDirectory | null = arguments[2];
+
+    let blob: Blob;
+
+    if(blobOrFile.type == fsEntry.File) {
+        blob = await blobOrFile.blob();
+        name = blobOrFile.name;
+        parent = blobOrFile.parent;
+    } else {
+        blob = blobOrFile;
+        name = name;
+    }
+
+
 
     const reader = new BlobReader(blob);
 
-    const dir = new fsUtils.fsDirectory_Container(file.name, file.parent);
+    const dir = new fsUtils.fsDirectory_Container(name, parent);
 
 
-
-    const endOfCentralDirPointer = await locateEndOfCentralDir(await file.blob())
+    const endOfCentralDirPointer = await locateEndOfCentralDir(blob)
 
     if(endOfCentralDirPointer == -1) {
 
@@ -243,7 +259,10 @@ export async function readZip(file: fsFile): Promise<fsDirectory> {
             
             await reader.load(4);
             
-            reader.assertMagic('PK');
+            if(!reader.magic('PK')) {
+                console.warn(`Invalid ZIP section type header. at ${reader.blobPointer - 2}`);
+                return dir;
+            }
             const sectionType = reader.readNumber('Uint16');
             
             switch(sectionType) {
@@ -330,8 +349,12 @@ export async function readZip(file: fsFile): Promise<fsDirectory> {
     
                     break; }
     
-                default:
-                    throw new Error(`Invalid ZIP section type. ${sectionType} at ${reader.blobPointer - 2}`);
+                default: {
+
+                    console.warn(`Invalid ZIP section type. ${sectionType} at ${reader.blobPointer - 2}`);
+                    return dir;
+
+                    break; }
                 
             }
     
