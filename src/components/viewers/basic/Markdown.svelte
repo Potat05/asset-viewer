@@ -3,41 +3,24 @@
     import type { fsFile } from "$lib/FileSystem";
     import { Marked } from "marked";
     import { markedHighlight } from "marked-highlight";
-    import { onDestroy, onMount } from "svelte";
     import hljs from "highlight.js/lib/core";
     import { languageRegistry } from "$lib/Languages";
 
-    // TODO - Instead of using an observer to add ids to header elements, use a Marked extension.
-
     export let entry: fsFile;
 
-    let container: HTMLDivElement;
-
-    let observer: MutationObserver;
-
-    onMount(() => {
-
-        observer = new MutationObserver(() => {
-
-            // Allow hrefs to header selectors inside the readme.
-
-            const headerElements: NodeListOf<HTMLHeadingElement> = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
-
-            headerElements.forEach(header => {
-                header.id = header.innerText.toLowerCase().replace(' ', '_');
-            });
-
-        });
-
-        observer.observe(container, { childList: true });
-
-    });
-    
-    onDestroy(() => {
-        observer?.disconnect();
-    });
-
     const marked = new Marked(
+        // <h#> Id.
+        {
+            async: false,
+            renderer: {
+                heading: (text, level, raw) => {
+
+                    return `<h${level} id="${raw.toLowerCase().replace(' ', '_')}">${text}</h${level}>`;
+
+                }
+            }
+        },
+        // <code> Highlighting.
         markedHighlight({
             langPrefix: 'hljs language-',
             async: true,
@@ -96,7 +79,7 @@
 </style>
 
 <div class="markdown-container">
-    <div class="markdown-scroll" bind:this={container}>
+    <div class="markdown-scroll">
         {#await entry.blob() then blob}
             {#await blob.text() then text}
 
