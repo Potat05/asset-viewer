@@ -75,6 +75,7 @@
             const newEntry = await entry.viewer.transform?.(entry) ?? entry;
             newEntry.name = entry.name;
             newEntry.parent = entry.parent;
+            newEntry.viewer = entry.viewer;
 
             if(newEntry.type == fsEntry.Directory) {
                 openDirectory(newEntry);
