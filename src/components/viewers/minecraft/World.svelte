@@ -6,32 +6,17 @@
     import * as THREE from "three";
     import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls";
     import { WorldLoader } from "$lib/minecraft/worldloader";
+    import { ThreeUtils } from "$lib/ThreeUtils";
 
     export let entry: fsDirectory;
 
     let canvas: HTMLCanvasElement;
 
-    let canvasResizeObserver: ResizeObserver;
-
     let loader: WorldLoader;
 
-    let renderTimeout: number = -1;
     let chunksTimeout: number = -1;
 
-    let renderer: THREE.Renderer;
-    let scene: THREE.Scene;
-    let camera: THREE.PerspectiveCamera;
-    let controls: PointerLockControls;
-
-    let keys: Set<string> = new Set();
-
-    function keyDown(ev: KeyboardEvent) {
-        keys.add(ev.code);
-    }
-
-    function keyUp(ev: KeyboardEvent) {
-        keys.delete(ev.code);
-    }
+    let stopRenderer: () => void;
 
     onMount(async () => {
 
@@ -39,48 +24,18 @@
 
 
 
-        renderer = new THREE.WebGLRenderer({
-            canvas,
-            antialias: true
+        const {
+            scene,
+            camera,
+            controls,
+            dispose
+        } = ThreeUtils.createRendererWithControls({
+            canvas
         });
 
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(91, 1, 0.1, 2000);
-        controls = new PointerLockControls(camera, canvas);
+        controls.moveSpeed = 0.1;
 
-        camera.position.set(0, 100, 0)
-
-        function updateControls(dt: number = 1) {
-            let move = new THREE.Vector3();
-            let speed = 0.1;
-
-            const forward = camera.getWorldDirection(new THREE.Vector3());
-            const up = camera.up;
-            const right = new THREE.Vector3().crossVectors(forward, up);
-
-            if(keys.has('KeyW')) move.add(forward);
-            if(keys.has('KeyS')) move.addScaledVector(forward, -1);
-            if(keys.has('KeyD')) move.add(right);
-            if(keys.has('KeyA')) move.addScaledVector(right, -1);
-            if(keys.has('Space')) move.add(up);
-            if(keys.has('ControlLeft')) move.addScaledVector(up, -1);
-
-            camera.position.addScaledVector(move.normalize(), speed * dt);
-        }
-
-
-
-
-
-
-        canvasResizeObserver = new ResizeObserver(() => {
-            canvas.width = canvas.clientWidth;
-            canvas.height = canvas.clientHeight;
-            renderer.setSize(canvas.width, canvas.height);
-            camera.aspect = canvas.width / canvas.height;
-            camera.updateProjectionMatrix();
-        });
-        canvasResizeObserver.observe(canvas);
+        stopRenderer = dispose;
 
 
 
@@ -222,27 +177,6 @@
 
         updateChunksLoop();
 
-
-
-        let lastRenderTime = Date.now();
-
-        async function render() {
-
-            if(controls.isLocked) {
-                updateControls(Date.now() - lastRenderTime);
-            }
-            renderer.render(scene, camera);
-
-            lastRenderTime = Date.now();
-
-            clearTimeout(renderTimeout);
-            renderTimeout = setTimeout(() => render(), 1000 / 60);
-        }
-
-        render();
-
-
-
     });
 
 
@@ -250,12 +184,10 @@
 
 
     onDestroy(() => {
+        stopRenderer();
+
         loader.destroyDispatcher();
-        scene.clear();
-        controls.dispose();
         clearTimeout(chunksTimeout);
-        clearTimeout(renderTimeout);
-        canvasResizeObserver.disconnect();
     });
 
 </script>
@@ -269,9 +201,4 @@
 
 </style>
 
-<svelte:body
-    on:keydown={keyDown}
-    on:keyup={keyUp}
-/>
-
-<canvas bind:this={canvas} on:click={() => controls.lock()}></canvas>
+<canvas bind:this={canvas}></canvas>

@@ -1,8 +1,8 @@
 import { fsEntry, type fsDirectory, type fsFile } from "$lib/FileSystem";
+import { ThreeUtils } from "$lib/ThreeUtils";
 import type { Viewer } from "$lib/Viewer";
 import { BSP } from "$lib/source-engine/bsp";
 import * as THREE from "three";
-import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls";
 
 
 
@@ -31,62 +31,15 @@ const viewer: Viewer = {
 
 
 
-            // Init renderer
-            const canvas = document.createElement('canvas');
+            const {
+                renderer,
+                scene
+            } = ThreeUtils.createRendererWithControls();
+
+            const canvas = renderer.domElement;
             canvas.style.width = '100vw';
             canvas.style.height = '100vh';
-            const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(91, 1 / 1, 1, 20000);
-            const controls = new PointerLockControls(camera, canvas);
-
-            camera.position.set(0, 100, 0)
-
-
-
-            let keys: Set<string> = new Set();
-
-            function updateControls(dt: number = 1) {
-                let move = new THREE.Vector3();
-                let speed = 1;
-
-                const forward = camera.getWorldDirection(new THREE.Vector3());
-                const up = camera.up;
-                const right = new THREE.Vector3().crossVectors(forward, up);
-
-                if(keys.has('KeyW')) move.add(forward);
-                if(keys.has('KeyS')) move.addScaledVector(forward, -1);
-                if(keys.has('KeyD')) move.add(right);
-                if(keys.has('KeyA')) move.addScaledVector(right, -1);
-                if(keys.has('Space')) move.add(up);
-                if(keys.has('ControlLeft')) move.addScaledVector(up, -1);
-
-                camera.position.addScaledVector(move.normalize(), speed * dt);
-            }
-
-            function keyDown(ev: KeyboardEvent) {
-                keys.add(ev.code);
-            }
-        
-            function keyUp(ev: KeyboardEvent) {
-                keys.delete(ev.code);
-            }
-
-            document.body.addEventListener('keydown', keyDown);
-            document.body.addEventListener('keyup', keyUp);
-
-            canvas.addEventListener('click', () => controls.lock());
-
-
-
-            new ResizeObserver(() => {
-                canvas.width = canvas.clientWidth;
-                canvas.height = canvas.clientHeight;
-                renderer.setSize(canvas.width, canvas.height);
-                camera.aspect = canvas.width / canvas.height;
-                camera.updateProjectionMatrix();
-            }).observe(canvas);
-
+            target.appendChild(canvas);
 
 
             // Create scene
@@ -100,24 +53,9 @@ const viewer: Viewer = {
                 color: 'white'
             }));
 
-            mesh.rotateX(Math.PI / 2);
+            mesh.rotateX(-Math.PI / 2);
 
             scene.add(mesh);
-
-
-
-            // Render loop
-            setInterval(() => {
-
-                if(controls.isLocked) {
-                    updateControls(1000 / 60);
-                }
-
-                renderer.render(scene, camera);
-
-            }, 1000 / 60);
-
-            target.appendChild(canvas);
 
         } else {
             throw new Error('Tried to create bsp viewer with file.');
