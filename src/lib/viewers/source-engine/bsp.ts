@@ -3,6 +3,7 @@ import { ThreeUtils } from "$lib/ThreeUtils";
 import type { Viewer } from "$lib/Viewer";
 import { BSP } from "$lib/source-engine/bsp";
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils";
 
 
 
@@ -42,18 +43,50 @@ const viewer: Viewer = {
             target.appendChild(canvas);
 
 
-            // Create scene
+
+            // TODO: Move building of meshes to separate thing.
             const vertices = await bsp.getVertices();
+            const edges = await bsp.getEdges();
+            const surfedges = await bsp.getSurfEdges();
+            const faces = await bsp.getFaces();
 
-            const geom = new THREE.BufferGeometry();
-            geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices.map(vert => [ vert.x, vert.y, vert.z ]).flat(), 3));
 
-            const mesh = new THREE.Points(geom, new THREE.PointsMaterial({
-                size: 5,
-                color: 'white'
+            const geoms: THREE.BufferGeometry[] = [];
+
+            for(const face of faces) {
+
+                const verts = [];
+
+                for(let i = 0; i < face.numEdges; i++) {
+                    const surfedge = surfedges[face.firstEdge + i];
+                    const edge = edges[Math.abs(surfedge)];
+                    const vertex = vertices[edge[surfedge < 0 ? 1 : 0]];
+
+                    verts.push(vertex);
+                }
+
+                const indices = [];
+                for(let i = 0; i < verts.length-2; i++) {
+                    indices.push(i+2, i+1, 0);
+                }
+
+                const geom = new THREE.BufferGeometry();
+                geom.setAttribute('position', new THREE.Float32BufferAttribute(verts.map(vert => [ vert.x, vert.y, vert.z ]).flat(), 3));
+                geom.setIndex(indices);
+
+                geoms.push(geom)
+
+            }
+
+
+            const merged = mergeGeometries(geoms);
+
+            const mesh = new THREE.Mesh(merged, new THREE.MeshNormalMaterial({
+                flatShading: true
             }));
 
             mesh.rotateX(-Math.PI / 2);
+
 
             scene.add(mesh);
 

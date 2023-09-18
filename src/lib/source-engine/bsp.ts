@@ -218,13 +218,52 @@ export class BSP extends BlobReader {
 
     }
 
+    private readVector(): { x: number, y: number, z: number } {
+        return {
+            x: this.readNumber('Float32'),
+            y: this.readNumber('Float32'),
+            z: this.readNumber('Float32')
+        }
+    }
+
     public async getVertices() {
         await this.loadLump(Lump.VERTEXES);
+        return this.readArrayUntilEnd(this.readVector);
+    }
+
+    public async getEdges() {
+        await this.loadLump(Lump.EDGES);
+        return this.readArrayUntilEnd(() => {
+            return [ this.readNumber('Uint16'), this.readNumber('Uint16') ];
+        });
+    }
+
+    public async getSurfEdges() {
+        await this.loadLump(Lump.SURFEDGES);
+        return this.readArrayUntilEnd(this.readNumber, 'Int32');
+    }
+
+    public async getFaces() {
+        await this.loadLump(Lump.FACES);
         return this.readArrayUntilEnd(() => {
             return {
-                x: this.readNumber('Float32'),
-                y: this.readNumber('Float32'),
-                z: this.readNumber('Float32')
+                planeNum: this.readNumber('Uint16'),
+                side: this.readNumber('Uint8'),
+                onNode: this.readNumber('Uint8') == 1,
+                firstEdge: this.readNumber('Uint32'),
+                numEdges: this.readNumber('Uint16'),
+                texInfo: this.readNumber('Uint16'),
+                dispInfo: this.readNumber('Int16'),
+                surfaceFogVolumeID: this.readNumber('Uint16'),
+                styles: [ this.readNumber('Uint8'), this.readNumber('Uint8'), this.readNumber('Uint8'), this.readNumber('Uint8') ],
+                lightOffsets: this.readNumber('Uint32'),
+                area: this.readNumber('Float32'),
+                lightmapTextureMins: [ this.readNumber('Int32'), this.readNumber('Int32') ],
+                lightmapTextureSize: [ this.readNumber('Int32'), this.readNumber('Int32') ],
+                originalFace: this.readNumber('Uint32'),
+                numPrimitives: this.readNumber('Uint16'),
+                firstPrimitiveID: this.readNumber('Uint16'),
+                smoothingGroups: this.readNumber('Uint32')
             }
         });
     }
