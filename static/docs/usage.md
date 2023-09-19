@@ -67,6 +67,11 @@ Use the tabs at the top to navigate viewers.
 
 * Valve Texture Format Viewer (.vtf)  
     * View animated textures.  
+* Map Viewer (.bsp)  
+    * View textureless map.  
+
+<img src="/asset-viewer/docs/pics/source-engine-map-pakfile-viewer.png" alt="Source Engine Embedded Map ZIP File" width="400">
+<img src="/asset-viewer/docs/pics/source-engine-map-viewer.png" alt="Source Engine Map Viewer" width="400">
 
 # License
 
