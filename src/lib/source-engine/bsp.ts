@@ -3,6 +3,7 @@ import { BlobReader } from "$lib/BlobReader";
 import type { fsDirectory } from "$lib/FileSystem";
 import { decodeLZMAProperties, decompress } from "$lib/codecs/lzma";
 import { readZip } from "$lib/zip";
+import * as THREE from "three";
 
 
 
@@ -218,13 +219,15 @@ export class BSP extends BlobReader {
 
     }
 
-    private readVector(): { x: number, y: number, z: number } {
-        return {
-            x: this.readNumber('Float32'),
-            y: this.readNumber('Float32'),
-            z: this.readNumber('Float32')
-        }
+    private readVector(): THREE.Vector3 {
+        return new THREE.Vector3(
+            this.readNumber('Float32'),
+            this.readNumber('Float32'),
+            this.readNumber('Float32')
+        );
     }
+
+
 
     public async getVertices() {
         await this.loadLump(Lump.VERTEXES);
@@ -264,6 +267,95 @@ export class BSP extends BlobReader {
                 numPrimitives: this.readNumber('Uint16'),
                 firstPrimitiveID: this.readNumber('Uint16'),
                 smoothingGroups: this.readNumber('Uint32')
+            }
+        });
+    }
+
+
+
+    private readDispSubEdgeNeighbor() {
+        return {
+            neighbor: this.readNumber('Uint16'),
+            neighborOrientation: this.readNumber('Uint8'),
+            span: this.readNumber('Uint8'),
+            neighborSpan: this.readNumber('Uint8')
+        }
+    }
+
+    private readDispEdgeNeighbor() {
+        return [ this.readDispSubEdgeNeighbor(), this.readDispSubEdgeNeighbor() ];
+    }
+
+    private readDispCornerNeighbor() {
+        return {
+            neighbors: [ this.readNumber('Int16'), this.readNumber('Int16'), this.readNumber('Int16'), this.readNumber('Int16') ],
+            numNeighbors: this.readNumber('Uint8')
+        }
+    }
+
+    public async getDispInfos() {
+        await this.loadLump(Lump.DISPINFO);
+        return this.readArrayUntilEnd(() => {
+            return {
+                startPosition: this.readVector(),
+                dispVertStart: this.readNumber('Uint32'),
+                dispTriStart: this.readNumber('Uint32'),
+                power: this.readNumber('Uint32'),
+                minTesselation: this.readNumber('Uint32'),
+                smoothingAngle: this.readNumber('Float32'),
+                contents: this.readNumber('Uint32'),
+                mapFace: this.readNumber('Uint16'),
+                lightmapAlphaStart: this.readNumber('Uint32'),
+                lightmapSamplePositionStart: this.readNumber('Uint32'),
+                edgeNeighbors: [ this.readDispEdgeNeighbor(), this.readDispEdgeNeighbor(), this.readDispEdgeNeighbor(), this.readDispEdgeNeighbor() ],
+                cornerNeighbors: [ this.readDispCornerNeighbor(), this.readDispCornerNeighbor(), this.readDispCornerNeighbor(), this.readDispCornerNeighbor() ],
+                allowedVerts: this.readBuffer(54)
+            }
+        });
+    }
+
+    public async getDispVerts() {
+        await this.loadLump(Lump.DISP_VERTS);
+        return this.readArrayUntilEnd(() => {
+            return {
+                vec: this.readVector(),
+                dist: this.readNumber('Float32'),
+                alpha: this.readNumber('Float32')
+            }
+        });
+    }
+
+
+
+    private readTextureVecs(): [ [ number, number, number, number ], [ number, number, number, number ] ] {
+        return [
+            [ this.readNumber('Float32'), this.readNumber('Float32'), this.readNumber('Float32'), this.readNumber('Float32') ],
+            [ this.readNumber('Float32'), this.readNumber('Float32'), this.readNumber('Float32'), this.readNumber('Float32') ]
+        ];
+    }
+
+    public async getTexInfos() {
+        await this.loadLump(Lump.TEXINFO);
+        return this.readArrayUntilEnd(() => {
+            return {
+                textureVecs: this.readTextureVecs(),
+                lightmapVecs: this.readTextureVecs(),
+                flags: this.readNumber('Uint32'),
+                texData: this.readNumber('Int32')
+            }
+        });
+    }
+
+    public async getTexDatas() {
+        await this.loadLump(Lump.TEXDATA);
+        return this.readArrayUntilEnd(() => {
+            return {
+                reflectivity: this.readVector(),
+                nameStringTableID: this.readNumber('Uint32'),
+                width: this.readNumber('Uint32'),
+                height: this.readNumber('Uint32'),
+                view_width: this.readNumber('Uint32'),
+                view_height: this.readNumber('Uint32')
             }
         });
     }
