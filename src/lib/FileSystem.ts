@@ -99,7 +99,7 @@ export namespace fsUtils {
                 throw new Error('Catastrophic error that should never happen.');
             }
 
-            const get = await dir.get(name);
+            const get = await entry.get(name);
 
             if(
                 get == null ||
