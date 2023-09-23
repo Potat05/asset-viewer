@@ -219,30 +219,16 @@ async function locateEndOfCentralDir(file: Blob): Promise<number> {
 
 
 
-export async function readZip(blob: Blob, name: string, parent: fsDirectory | null): Promise<fsDirectory>;
-export async function readZip(file: fsFile): Promise<fsDirectory>;
-export async function readZip(): Promise<fsDirectory> {
-
-    const blobOrFile: Blob | fsFile = arguments[0];
-    let name: string = arguments[1];
-    let parent: fsDirectory | null = arguments[2];
-
-    let blob: Blob;
-
-    if(blobOrFile.type == fsEntry.File) {
-        blob = await blobOrFile.blob();
-        name = blobOrFile.name;
-        parent = blobOrFile.parent;
-    } else {
-        blob = blobOrFile;
-        name = name;
-    }
-
-
+export async function readZip(blob: Blob, name: string, parent: fsDirectory | null, lowerPaths: boolean = false): Promise<fsDirectory> {
 
     const reader = new BlobReader(blob);
 
     const dir = new fsUtils.fsDirectory_Container(name, parent);
+
+
+
+    const transformPath: (path: string) => string = (lowerPaths ? path => path.toLowerCase() : path => path);
+
 
 
     const endOfCentralDirPointer = await locateEndOfCentralDir(blob)
@@ -289,7 +275,7 @@ export async function readZip(): Promise<fsDirectory> {
     
                     await reader.load(filenameLength + extraLength + commentLength);
     
-                    const filepath = reader.readString(filenameLength, 'utf-8');
+                    const filepath = transformPath(reader.readString(filenameLength, 'utf-8'));
                     const extra = reader.readBuffer(extraLength);
                     const comment = reader.readString(commentLength, 'utf-8');
     
@@ -311,7 +297,7 @@ export async function readZip(): Promise<fsDirectory> {
     
                     await reader.load(filenameLength + extraLength);
     
-                    const filepath = reader.readString(filenameLength, 'utf-8');
+                    const filepath = transformPath(reader.readString(filenameLength, 'utf-8'));
                     const extra = reader.readBuffer(extraLength);
     
                     const offsetData = reader.blobPointer;
@@ -403,7 +389,7 @@ export async function readZip(): Promise<fsDirectory> {
             const extFileAttr = reader.readNumber('Uint32');
             const offsetToLocalFileHeader = reader.readNumber('Uint32');
 
-            const filepath = reader.readString(filenameLength, 'utf-8');
+            const filepath = transformPath(reader.readString(filenameLength, 'utf-8'));
             const extra = reader.readBuffer(extraLength);
             const comment = reader.readString(commentLength, 'utf-8');
 
