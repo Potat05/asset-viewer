@@ -12,7 +12,18 @@ const MaterialBASE = zod.object({
 });
 
 const Material_LightMappedGeneric = zod.object({
-    $basetexture: zod.string(),
+    $basetexture: zod.string().default('shadertest/BaseTexture'),
+    $translucent: zod.enum([ '0', '1' ]).transform(val => val == '1').default('0')
+});
+
+const Material_UnlitMappedGeneric = zod.object({
+    $basetexture: zod.string().default('shadertest/BaseTexture'),
+    $translucent: zod.enum([ '0', '1' ]).transform(val => val == '1').default('0')
+});
+
+const Material_WorldVertexTransition = zod.object({
+    $basetexture: zod.string().default('shadertest/BaseTexture'),
+    $basetexture2: zod.string().default('shadertest/lightmappedtexture'),
     $translucent: zod.enum([ '0', '1' ]).transform(val => val == '1').default('0')
 });
 
@@ -21,7 +32,7 @@ const Material_LightMappedGeneric = zod.object({
 async function getTexture(dir: fsDirectory, path: string): Promise<THREE.Texture> {
     path = `materials/${path.toLowerCase()}.vtf`;
 
-    const file = await dir.get(path);
+    const file = await fsUtils.getDeep(dir, path);
     if(!file || file.type != fsEntry.File) {
         throw new Error(`Could not find texture "${path}"`);
     }
@@ -50,7 +61,7 @@ async function getShader(path: string, params: THREE.ShaderMaterialParameters): 
 
 
 
-class VMT {
+export class VMT {
 
     file: fsFile;
 
@@ -95,6 +106,21 @@ class VMT {
 
         switch(shader) {
 
+            case 'unlitgeneric': {
+
+                const params = await this.parse(Material_UnlitMappedGeneric);
+
+                return getShader('source-engine/shaders/LightMappedGeneric', {
+                    uniforms: {
+                        u_basetexture: {
+                            value: await getTexture(dir, params.$basetexture)
+                        }
+                    },
+                    transparent: params.$translucent
+                });
+
+                break; }
+
             case 'lightmappedgeneric': {
 
                 const params = await this.parse(Material_LightMappedGeneric);
@@ -103,6 +129,24 @@ class VMT {
                     uniforms: {
                         u_basetexture: {
                             value: await getTexture(dir, params.$basetexture)
+                        }
+                    },
+                    transparent: params.$translucent
+                });
+
+                break; }
+
+            case 'worldvertextransition': {
+
+                const params = await this.parse(Material_WorldVertexTransition);
+
+                return getShader('source-engine/shaders/WorldVertexTransition', {
+                    uniforms: {
+                        u_basetexture1: {
+                            value: await getTexture(dir, params.$basetexture)
+                        },
+                        u_basetexture2: {
+                            value: await getTexture(dir, params.$basetexture2)
                         }
                     },
                     transparent: params.$translucent

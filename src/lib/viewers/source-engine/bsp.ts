@@ -1,7 +1,10 @@
-import { fsEntry, type fsDirectory, type fsFile } from "$lib/FileSystem";
+import { fsEntry, type fsDirectory, type fsFile, fsUtils } from "$lib/FileSystem";
 import { ThreeUtils } from "$lib/ThreeUtils";
+import { TypeUtils } from "$lib/TypeUtils";
 import type { Viewer } from "$lib/Viewer";
 import { BSP } from "$lib/source-engine/bsp";
+import { getSourceEngineAssetsDir } from "$lib/source-engine/dir";
+import { VMT } from "$lib/source-engine/vmt";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils";
 
@@ -26,12 +29,17 @@ const viewer: Viewer = {
             }
 
 
-
+            // BSP
             const bsp = new BSP(await file.blob());
             await bsp.readHeader();
 
 
+            // Resource directory
+            const base = fsUtils.root(entry);
+            const resourceDir = (base && base != entry) ? await getSourceEngineAssetsDir(base, [ entry ]) : entry;
 
+
+            // Init renderer
             const {
                 renderer,
                 scene
@@ -43,7 +51,7 @@ const viewer: Viewer = {
             target.appendChild(canvas);
 
 
-
+            // Create scene
             // TODO: Move building of meshes to separate thing.
             const vertices = await bsp.getVertices();
             const edges = await bsp.getEdges();
@@ -53,10 +61,37 @@ const viewer: Viewer = {
             const texDatas = await bsp.getTexDatas();
             const dispInfos = await bsp.getDispInfos();
             const dispVerts = await bsp.getDispVerts();
+            const texStrings = await bsp.getTexDataStrings();
+
+
+            // Materials
+            const materials = await Promise.all(texStrings.map(async materialPath => {
+                materialPath = `materials/${materialPath.toLowerCase()}`;
+                if(!materialPath.endsWith('.vmt')) materialPath += '.vmt';
+                
+                const vmtFile = await fsUtils.getDeep(resourceDir, materialPath);
+                if(!vmtFile || vmtFile.type != fsEntry.File) {
+                    console.warn(`Could not find material file "${materialPath}"`);
+                    return null;
+                }
+
+                const vmt = new VMT(vmtFile);
+
+                try {
+                    return await vmt.getShader(resourceDir);
+                } catch(err) {
+                    console.warn(`Failed to get shader "${materialPath}"`);
+                    return null;
+                }
+
+            }));
+
+            console.log(resourceDir);
 
 
 
-            const geoms: THREE.BufferGeometry[] = [];
+            // Geometries
+            const geomsLists: THREE.BufferGeometry[][] = materials.map(() => []);
 
             for(const face of faces) {
 
@@ -144,27 +179,55 @@ const viewer: Viewer = {
 
                 }
 
+                // Get face UVs
+                const s = new THREE.Vector3(texInfo.textureVecs[0][0], texInfo.textureVecs[0][1], texInfo.textureVecs[0][2]);
+                const t = new THREE.Vector3(texInfo.textureVecs[1][0], texInfo.textureVecs[1][1], texInfo.textureVecs[1][2]);
+                const xOffset = texInfo.textureVecs[0][3];
+                const yOffset = texInfo.textureVecs[1][3];
+
+                const uvs: THREE.Vector2[] = verts.map(vert => {
+                    return new THREE.Vector2(
+                        (s.dot(vert) + xOffset) / texData.width,
+                        (t.dot(vert) + yOffset) / texData.height
+                    );
+                });
+
                 // Construct face
                 const geom = new THREE.BufferGeometry();
                 geom.setAttribute('position', new THREE.Float32BufferAttribute(verts.map(vert => vert.toArray()).flat(), 3));
                 geom.setAttribute('color', new THREE.Float32BufferAttribute(verts.map(() => reflectivity.toArray()).flat(), 3));
                 geom.setIndex(indices);
+                geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs.map(uv => uv.toArray()).flat(), 2));
 
-                geoms.push(geom)
+
+                geomsLists[texData.nameStringTableID].push(geom);
 
             }
 
 
-            const merged = mergeGeometries(geoms);
+            // Meshes
+            const meshes = geomsLists.map((geoms, i) => {
 
-            const mesh = new THREE.Mesh(merged, new THREE.MeshBasicMaterial({
-                vertexColors: true
-            }));
+                if(geoms.length == 0) return null;
 
-            mesh.rotateX(-Math.PI / 2);
+                const material = materials[i];
+
+                const merged = mergeGeometries(geoms);
+
+                return new THREE.Mesh(merged, material == null ? new THREE.MeshBasicMaterial({
+                    vertexColors: true
+                }) : material);
+
+            }).filter(TypeUtils.isNotNull);
 
 
-            scene.add(mesh);
+            const group = new THREE.Group();
+            group.add(...meshes);
+
+            group.rotateX(-Math.PI / 2);
+
+
+            scene.add(group);
 
         } else {
             throw new Error('Tried to create bsp viewer with file.');

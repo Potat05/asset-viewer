@@ -360,6 +360,17 @@ export class BSP extends BlobReader {
         });
     }
 
+    public async getTexDataStrings() {
+        await this.loadLump(Lump.TEXDATA_STRING_TABLE);
+        const offsets = this.readArrayUntilEnd(this.readNumber, 'Uint32');
+
+        await this.loadLump(Lump.TEXDATA_STRING_DATA);
+        return offsets.map(offset => {
+            this.pointer = offset;
+            return this.readNullString();
+        });
+    }
+
 }
 
 
