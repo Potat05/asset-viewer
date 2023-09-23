@@ -49,7 +49,7 @@ export namespace fsUtils {
             return null;
         }
 
-        return root(entry);
+        return root(entry.parent);
 
     }
 
