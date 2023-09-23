@@ -5,7 +5,7 @@ let global_dispatcher_id = 0;
 
 
 
-export class EventDispatcher<T extends {[key: string]: (...data: any[]) => void}> {
+export abstract class EventDispatcher<T extends {[key: string]: (...data: any[]) => void}> {
 
     private destroyed: boolean = false;
 
