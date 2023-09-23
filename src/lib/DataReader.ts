@@ -295,6 +295,7 @@ class DataReader {
      * Read until end of data.  
      */
     readArrayUntilEnd<F extends ReaderCallbackFunctionType<this>>(readFunc: F, ...args: Parameters<F>): ReturnType<F>[] {
+        if(this.eof) return [];
         return this.readArrayWhile(readFunc, () => !this.eof, ...args);
     }
 
