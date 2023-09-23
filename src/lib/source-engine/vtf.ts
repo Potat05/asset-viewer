@@ -10,7 +10,9 @@
 
 import { DataReader } from "$lib/DataReader";
 import { NumberUtils } from "$lib/NumberUtils";
-import type { Utils } from "$lib/Utils";
+import { Utils } from "$lib/Utils";
+import * as THREE from 'three';
+
 
 
 type Color = { r: number, g: number, b: number, a: number };
@@ -731,6 +733,81 @@ export class VTF {
 
     }
 
+
+
+    getTHREEMipmaps(frame: number = 0): { data: Uint8Array, width: number, height: number }[] {
+        return Utils.initArray(this.mipmaps, mipmap => {
+            const size = this.getSize(mipmap);
+            return {
+                data: new Uint8Array(this.getTexture(mipmap, frame).data),
+                width: size[0],
+                height: size[1]
+            }
+        }).filter(mipmap => {
+            return (mipmap.width > 0 && mipmap.height > 0);
+        });
+    }
+
+    getTHREETexture(): THREE.Texture {
+
+        let texture: THREE.CompressedTexture | THREE.DataTexture;
+
+        if([
+            VTF_Format.DXT1,
+            VTF_Format.DXT1_ONEBITALPHA,
+            VTF_Format.DXT3,
+            VTF_Format.DXT5
+        ].includes(this.format)) {
+
+            texture = new THREE.CompressedTexture(
+                // @ts-ignore - The types of three are messed up here, this does in fact work.
+                this.getTHREEMipmaps(),
+                this.width,
+                this.height,
+                THREEFormatMap[this.format] as THREE.CompressedPixelFormat
+            );
+
+        } else {
+
+            if(THREEFormatMap[this.format] === undefined) {
+                // TODO: Convert texture format to RGBA if there is no three format.
+                throw new Error('Cannot convert texture format.');
+            }
+
+            texture = new THREE.DataTexture(
+                undefined,
+                this.width,
+                this.height,
+                THREEFormatMap[this.format] as THREE.PixelFormat
+            );
+
+            texture.mipmaps = this.getTHREEMipmaps();
+
+        }
+
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.generateMipmaps = false; // Mipmaps are already generated.
+        texture.magFilter = THREE.LinearFilter;
+        texture.minFilter = THREE.LinearMipMapLinearFilter;
+
+        texture.needsUpdate = true;
+
+        return texture;
+
+    }
+
 }
+
+
+
+const THREEFormatMap: {[key: number]: number} = {
+    [VTF_Format.DXT1]: THREE.RGB_S3TC_DXT1_Format,
+    [VTF_Format.DXT1_ONEBITALPHA]: THREE.RGBA_S3TC_DXT1_Format,
+    [VTF_Format.DXT3]: THREE.RGBA_S3TC_DXT3_Format,
+    [VTF_Format.DXT5]: THREE.RGBA_S3TC_DXT5_Format,
+    [VTF_Format.RGBA8888]: THREE.RGBAFormat,
+    [VTF_Format.BGRA8888]: THREE.RGBAFormat
+};
 
 
