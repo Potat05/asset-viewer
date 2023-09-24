@@ -213,7 +213,7 @@ export class BSP extends BlobReader {
 
         if(archiveBlob == null) return null;
 
-        const zip = await readZip(archiveBlob, name, parent);
+        const zip = await readZip(archiveBlob, name, parent, true);
 
         return zip;
 

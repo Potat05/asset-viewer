@@ -80,6 +80,7 @@ const viewer: Viewer = {
                 try {
                     return await vmt.getShader(resourceDir);
                 } catch(err) {
+                    console.error(err);
                     console.warn(`Failed to get shader "${materialPath}"`);
                     return null;
                 }
