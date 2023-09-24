@@ -1,1 +1,0 @@
-import{f as o,M as t}from"./2.2ee3d51f.js";const s={namespace:"markdown",priority:2,createViewer:async(e,r)=>{if(e.type==o.File)new t({target:r,props:{entry:e}});else throw new Error("Tried to create markdown viewer with directory.")},getIcon:async()=>"/asset-viewer/bootstrap-icons/markdown.svg"};export{s as default};

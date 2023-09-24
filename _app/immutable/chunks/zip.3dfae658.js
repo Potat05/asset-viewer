@@ -1,1 +1,0 @@
-import{f as i}from"./2.2ee3d51f.js";import{r as e}from"./zip.871f7a84.js";const p={namespace:"zip",priority:1,transform:async r=>{if(r.type!=i.File)throw new Error("Tried to create zip archive viewer with invalid entry type.");return await e(r)}};export{p as default};
