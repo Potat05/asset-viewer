@@ -129,54 +129,51 @@ export namespace KeyValues {
 
 
 
-    function parsedTokenized(tokens: Token[], index: number, lowerKeys: boolean): { value: unknown, index: number } {
-        
-        // TODO: Probably move this to using a stack instead.
-        // Using a recursive function here just makes it slightly confusing especially with it returning multiple things.
-        // And this doesn't take in account of newlines, which *may* mess things up I think.
+    function parseTokenized(tokens: Token[], lowerKeys: boolean): unknown {
 
-        const valueToken = tokens[index];
-        if(valueToken.type == 'string') {
+        // TODO: Make error messages better.
 
-            return { value: valueToken.string, index: index + 1 };
+        type StackType = {[key: string]: string | StackType};
 
-        } else if(valueToken.type == 'openbracket') {
-            
-            const value: {[key: string]: unknown} = {};
+        let stack: StackType[] = [ {} ];
 
-            for(var i = index + 1; i < tokens.length; i++) {
+        for(let i = 0; i < tokens.length;) {
 
-                const keyToken = tokens[i];
+            const obj = stack.pop();
 
-                if(keyToken.type == 'string') {
-
-                    const parsed = parsedTokenized(tokens, i + 1, lowerKeys);
-                    value[lowerKeys ? keyToken.string.toLowerCase() : keyToken.string] = parsed.value;
-                    i = parsed.index;
-
-                } else if(keyToken.type == 'openbracket') {
-
-                    let brackets = 1;
-                    for(let j = i + 1; j < tokens.length; j++) {
-                        if(tokens[j].type == 'openbracket') brackets++;
-                        if(tokens[j].type == 'closebracket') brackets--;
-                    }
-
-                } else if(keyToken.type == 'closebracket') {
-
-                    break;
-
-                }
-
+            if(obj === undefined) {
+                throw new Error('parseTokenized empty stack.');
             }
 
-            return { value, index: i + 1 };
 
-        } else {
 
-            throw new Error('Malformed KeyValues tokens.');
+            const key = tokens[i++];
+            if(key.type == 'closebracket') {
+                continue;
+            } else if(key.type != 'string') {
+                throw new Error(`Expected key. at Ln ${key.line}, Col ${key.column}`);
+            }
+            const keyString = (lowerKeys ? key.string.toLowerCase() : key.string);
+
+
+
+            const value = tokens[i++];
+
+            if(value.type == 'openbracket') {
+                const newObj = {};
+                obj[keyString] = newObj;
+                stack.push(obj, newObj);
+                continue;
+            } else if(value.type == 'string') {
+                obj[keyString] = value.string;
+                stack.push(obj);
+            } else {
+                throw new Error(`Invalid value. at Ln ${value.line}, Col ${value.column}`);
+            }
 
         }
+
+        return stack.pop();
         
     }
 
@@ -200,13 +197,7 @@ export namespace KeyValues {
         tokens = tokens.filter(token => token.type != 'newline');
 
         // Parse
-        const keyToken = tokens[0];
-        if(keyToken.type != 'string') {
-            throw new Error('Keyvalues first token must be a key.');
-        }
-
-        const parsed = parsedTokenized(tokens, 1, lowerKeys);
-        const obj = { [lowerKeys ? keyToken.string.toLowerCase() : keyToken.string]: parsed.value };
+        const obj = parseTokenized(tokens, lowerKeys);
 
         // Validate
         if(validator) return validator.parse(obj);
