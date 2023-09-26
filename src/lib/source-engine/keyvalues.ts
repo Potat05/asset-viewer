@@ -66,6 +66,17 @@ export namespace KeyValues {
                 const end = str.indexOf('"', start + 1);
                 const string = str.slice(start + 1, end);
                 tokens.push({ type: 'string', string, ...goto(end + 1) });
+            } else if(/[a-zA-Z0-9]/.test(str[index])) {
+                // String | Key String
+                const last = tokens.at(-1);
+
+                // If string is first in line, end is whitespace, otherwise it's newline.
+                const endChar = (!last || last.type == 'newline') ? ' ' : '\n';
+
+                const start = index;
+                const end = str.indexOf(endChar, start + 1);
+                const string = str.slice(start, end);
+                tokens.push({ type: 'string', string, ...goto(end + 1) });
             } else if(/{/.test(str[index])) {
                 // {
                 tokens.push({ type: 'openbracket', ...increment(1) });
@@ -190,6 +201,10 @@ export namespace KeyValues {
 
         const lowerKeys = options.lowerKeys ?? true;
         const validator = options.validator;
+
+        // Clean up the string.
+        str = str.replace(/\r\n/g, '\n');
+        str = str.replace(/\r/g, '\n');
 
         // Tokenize
         let tokens = tokenize(str);
