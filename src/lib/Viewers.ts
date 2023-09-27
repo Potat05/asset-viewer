@@ -138,24 +138,47 @@ viewerRegistry.addRegistryItem(entry => {
 
 // Source Engine VTF Texture Viewer
 viewerRegistry.addRegistryItem(async entry => {
-    if(entry.type != fsEntry.File) return false;
-    if(!entry.name.endsWith('.vtf')) return false;
-    const blob = await entry.blob();
-    if(blob.size == 0) return true;
+    return entry.type == fsEntry.File && entry.name.endsWith('.vtf');
+    // if(entry.type != fsEntry.File) return false;
+    // if(!entry.name.endsWith('.vtf')) return false;
+    // const blob = await entry.blob();
+    // if(blob.size == 0) return true;
 
-    const ident = await blob.slice(0, 4).text();
+    // const ident = await blob.slice(0, 4).text();
 
-    return (ident == 'VTF\0');
+    // return (ident == 'VTF\0');
 }, () => import("$lib/viewers/source-engine/vtf"));
 
 // Source Engine BSP Map Viewer
 viewerRegistry.addRegistryItem(async entry => {
-    if(entry.type != fsEntry.File) return false;
-    if(!entry.name.endsWith('.bsp')) return false;
-    const blob = await entry.blob();
-    if(blob.size == 0) return true;
+    return entry.type == fsEntry.File && entry.name.endsWith('.bsp');
+    // if(entry.type != fsEntry.File) return false;
+    // if(!entry.name.endsWith('.bsp')) return false;
+    // const blob = await entry.blob();
+    // if(blob.size == 0) return true;
 
-    const ident = await blob.slice(0, 4).text();
+    // const ident = await blob.slice(0, 4).text();
 
-    return (ident == 'VBSP');
+    // return (ident == 'VBSP');
 }, () => import("$lib/viewers/source-engine/bsp"));
+
+// Source Engine VPK Archive Viewer
+const VPK_NAME_REGEX = /(.+)_(dir|\d+).vpk/;
+viewerRegistry.addRegistryItem(entry => {
+    if(entry.type != fsEntry.File) return false;
+    if(!entry.name.endsWith('.vpk')) return false;
+
+    // Single file archive, No more checks needed.
+    if(!VPK_NAME_REGEX.test(entry.name)) return true;
+
+    // Multi file archive.
+
+    // Cannot construct full archive.
+    if(entry.parent == null) return false;
+
+    // Only match if is _dir.vpk
+    const match = entry.name.match(VPK_NAME_REGEX);
+    if(!match) return false;
+    return match[2] == 'dir';
+
+}, () => import("$lib/viewers/source-engine/vpk"));
