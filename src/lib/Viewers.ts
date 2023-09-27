@@ -139,7 +139,7 @@ viewerRegistry.addRegistryItem(entry => {
 // Source Engine VTF Texture Viewer
 viewerRegistry.addRegistryItem(async entry => {
     if(entry.type != fsEntry.File) return false;
-    if(!entry.name.includes('.vtf')) return false;
+    if(!entry.name.endsWith('.vtf')) return false;
     const blob = await entry.blob();
     if(blob.size == 0) return true;
 
@@ -151,7 +151,7 @@ viewerRegistry.addRegistryItem(async entry => {
 // Source Engine BSP Map Viewer
 viewerRegistry.addRegistryItem(async entry => {
     if(entry.type != fsEntry.File) return false;
-    if(!entry.name.includes('.bsp')) return false;
+    if(!entry.name.endsWith('.bsp')) return false;
     const blob = await entry.blob();
     if(blob.size == 0) return true;
 
