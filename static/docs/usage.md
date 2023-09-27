@@ -74,6 +74,11 @@ Use the tabs at the top to navigate viewers.
 <img src="/asset-viewer/docs/pics/source-engine-map-viewer.png" alt="Source Engine Map Viewer" width="400">
 <img src="/asset-viewer/docs/pics/source-engine-map-textured-viewer.png" alt="Source Engine Map Textured Viewer" width="400">
 
+* VPK Archive Viewer
+    * View files inside VPK archives.
+
+<img src="/asset-viewer/docs/pics/source-engine-vpk-viewer.png" alt="Source Engine VPK Viewer" width="400">
+
 # License
 
 ```plaintext
