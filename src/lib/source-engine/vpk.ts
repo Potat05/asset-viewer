@@ -52,22 +52,80 @@ class VpkFile implements fsFile {
 
 
 
-export async function readVpk(file: fsFile, lowerPaths: boolean = false): Promise<fsDirectory> {
+const VPK_NAME_REGEX = /(.+)_(dir|\d+).vpk/;
+
+
+
+export async function readVpk(file: fsFile, lowerPaths: boolean = false): Promise<{ vpk: fsDirectory, from: fsFile[] }> {
 
     // Locate all vpk files for this archive.
 
+    let dirName: string;
+    let dirParent: fsDirectory | null;
     let dir: Blob;
     let files: {[key: number]: Blob} = {};
 
+    let from: fsFile[] = [];
+
     // Filename tells us if this vpk has multiple archive files.
-    if(/_(?:dir|\d+)\.vpk$/.test(file.name)) {
+    if(VPK_NAME_REGEX.test(file.name)) {
         // VPK has multiple archive files.
 
-        throw new Error('VPK TODO: Multiple archive files.');
+        const parent = file.parent;
+        if(!parent) {
+            throw new Error('VPK with multiple files MUST have parent.');
+        }
+
+        const vpkName = file.name.match(VPK_NAME_REGEX)?.[1];
+        if(!vpkName) {
+            throw new Error('VPK invalid name.');
+        }
+
+        const list = await parent.list();
+        for(const [ name, entry ] of Object.entries(list)) {
+            if(entry.type != fsEntry.File) continue;
+            if(!VPK_NAME_REGEX.test(name)) continue;
+
+            const match = name.match(VPK_NAME_REGEX);
+            if(!match) continue;
+
+            const archiveName = match[1];
+            if(!archiveName) continue;
+            if(archiveName != vpkName) continue;
+
+            const archiveID = match[2];
+            if(!archiveID) continue;
+
+            if(archiveID == 'dir') {
+                dirName = entry.name;
+                dirParent = entry.parent;
+                dir = await entry.blob();
+                from.push(entry);
+                continue;
+            } else {
+                const num = parseInt(archiveID);
+                if(!Number.isNaN(num)) {
+                    files[num] = await entry.blob();
+                    from.push(entry);
+                    continue;
+                }
+            }
+
+            throw new Error('Invalid archive ID')
+
+        }
+
+        // @ts-ignore
+        if(!dir || !dirName || dirParent === undefined) {
+            throw new Error('VPK unable to find dir.');
+        }
 
     } else {
         // VPK has only 1 archive file.
+        dirName = file.name;
+        dirParent = file.parent;
         dir = await file.blob();
+        from.push(file);
     }
 
 
@@ -99,7 +157,7 @@ export async function readVpk(file: fsFile, lowerPaths: boolean = false): Promis
 
 
 
-    const vpk = new fsUtils.fsDirectory_Container(file.name, file.parent);
+    const vpk = new fsUtils.fsDirectory_Container(dirName, dirParent);
 
 
 
@@ -141,7 +199,7 @@ export async function readVpk(file: fsFile, lowerPaths: boolean = false): Promis
 
 
 
-    return vpk;
+    return { vpk, from };
 
 }
 
