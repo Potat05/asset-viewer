@@ -60,7 +60,7 @@ export async function readVpk(file: fsFile, lowerPaths: boolean = false): Promis
     let files: {[key: number]: Blob} = {};
 
     // Filename tells us if this vpk has multiple archive files.
-    if(/_(?:dir|[\d]+).vpk$/.test(file.name)) {
+    if(/_(?:dir|\d+)\.vpk$/.test(file.name)) {
         // VPK has multiple archive files.
 
         throw new Error('VPK TODO: Multiple archive files.');
