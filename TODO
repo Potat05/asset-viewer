@@ -1,0 +1,4 @@
+
+Clean up $lib
+    Move all viewer things to $lib/module
+    Move all util things to $lib/common
