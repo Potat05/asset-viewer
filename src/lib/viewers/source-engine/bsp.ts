@@ -133,7 +133,11 @@ const viewer: Viewer = {
                     const size = Math.pow(2, dispInfo.power);
 
                     // Generate vertices
-                    const orientation = verts.findIndex(vert => (dispInfo.startPosition.distanceTo(vert) < 0.1));
+                    const closest = verts.reduce((closest, vert) => {
+                        if(closest === undefined) return vert;
+                        return (vert.distanceTo(dispInfo.startPosition) < closest.distanceTo(dispInfo.startPosition)) ? vert : closest;
+                    });
+                    const orientation = verts.findIndex(vert => vert == closest);
 
                     const v0 = verts[(orientation + 0) % 4];
                     const v1 = verts[(orientation + 1) % 4];
@@ -229,6 +233,11 @@ const viewer: Viewer = {
 
 
             scene.add(group);
+
+
+
+            // TODO: Overlays
+            // Use THREE.Plane OR { DecalGeometry } from "three/examples/jsm/geometries/DecalGeometry"
 
         } else {
             throw new Error('Tried to create bsp viewer with file.');
