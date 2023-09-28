@@ -66,7 +66,7 @@ export namespace KeyValues {
                 const end = str.indexOf('"', start + 1);
                 const string = str.slice(start + 1, end);
                 tokens.push({ type: 'string', string, ...goto(end + 1) });
-            } else if(/[a-zA-Z0-9]/.test(str[index])) {
+            } else if(/[^\n\s{}]/.test(str[index])) {
                 // String | Key String
                 const last = tokens.at(-1);
 
@@ -176,7 +176,7 @@ export namespace KeyValues {
                 stack.push(obj, newObj);
                 continue;
             } else if(value.type == 'string') {
-                obj[keyString] = value.string;
+                obj[keyString] = value.string.trim();
                 stack.push(obj);
             } else {
                 throw new Error(`Invalid value. at Ln ${value.line}, Col ${value.column}`);
@@ -205,6 +205,7 @@ export namespace KeyValues {
         // Clean up the string.
         str = str.replace(/\r\n/g, '\n');
         str = str.replace(/\r/g, '\n');
+        if(!str.endsWith('\n')) str += '\n';
 
         // Tokenize
         let tokens = tokenize(str);
