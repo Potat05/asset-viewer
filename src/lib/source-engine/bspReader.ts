@@ -43,7 +43,7 @@ type LumpDirEntry = {
     uncompressedLength: number;
 }
 
-enum Lump {
+export enum Lump {
     ENTITIES = 0,
     PLANES = 1,
     TEXDATA = 2,
@@ -123,7 +123,7 @@ enum Lump {
 
 
 
-export class BSP extends BlobReader {
+export class BSPReader extends BlobReader {
 
     constructor(blob: Blob) {
         super(blob);
