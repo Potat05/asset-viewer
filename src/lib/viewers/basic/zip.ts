@@ -11,7 +11,7 @@ const viewer: Viewer = {
             throw new Error('Tried to create zip archive viewer with invalid entry type.');
         }
 
-        const zipDir = await readZip(entry);
+        const zipDir = await readZip(await entry.blob(), entry.name, entry.parent);
 
         return zipDir;
 
