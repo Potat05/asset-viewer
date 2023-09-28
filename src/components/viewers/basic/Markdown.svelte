@@ -15,7 +15,7 @@
             renderer: {
                 heading: (text, level, raw) => {
 
-                    return `<h${level} id="${raw.toLowerCase().replace(' ', '_')}">${text}</h${level}>`;
+                    return `<h${level} id="${raw.toLowerCase().replace(' ', '-')}">${text}</h${level}>`;
 
                 }
             }
