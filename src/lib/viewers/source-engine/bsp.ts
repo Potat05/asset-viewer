@@ -57,11 +57,12 @@ const viewer: Viewer = {
 
 
             // Meshes
-            const geomsLists = await builder.getFaces({ reflectivity: true });
             const materials = await builder.getMaterials();
 
+            
             const group = new THREE.Group();
-
+            
+            const geomsLists = await builder.getFaces({ reflectivity: true });
             geomsLists.forEach((geoms, i) => {
                 if(geoms.length == 0) return;
 
@@ -77,7 +78,21 @@ const viewer: Viewer = {
 
             });
 
+            const overlaysList = await builder.getOverlays();
+            overlaysList.forEach((overlays, i) => {
+                if(overlays.length == 0) return;
+
+                const material = materials[i];
+
+                const merged = mergeGeometries(overlays);
+
+                const mesh = new THREE.Mesh(merged, material == null ? new THREE.MeshBasicMaterial() : material);
+
+                group.add(mesh);
+            });
+
             group.rotateX(-Math.PI / 2);
+            
 
             scene.add(group);
 

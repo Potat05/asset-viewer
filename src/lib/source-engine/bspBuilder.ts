@@ -197,9 +197,38 @@ export class BSPBuilder {
     }
 
     public async getOverlays(): Promise<THREE.BufferGeometry[][]> {
-        throw new Error('Unimplemented.');
-        // TODO: Overlays
-        // Use THREE.Plane OR { DecalGeometry } from "three/examples/jsm/geometries/DecalGeometry"
+        const overlays = await this.reader.getOverlays();
+        const texInfos = await this.reader.getTexInfos();
+        const texDatas = await this.reader.getTexDatas();
+
+        let matOverlays: THREE.BufferGeometry[][] = [];
+
+        for(const overlay of overlays) {
+
+            const size = new THREE.Vector3(100, 100, 100); // TODO - Get size of overlay
+
+
+            // TODO - Use DecalGeometry to project onto overlay.faces
+
+            const decal = new THREE.PlaneGeometry(size.x, size.y); // TODO - Texture is mirrored horizontally
+            const up = new THREE.Vector3(0, 0, -1);
+            const right = new THREE.Vector3().crossVectors(up, overlay.basisNormal);
+            const projectionMatrix = new THREE.Matrix4().makeBasis(right, up, overlay.basisNormal);
+            projectionMatrix.setPosition(overlay.origin.clone().add(overlay.basisNormal)); // Add normal to stop z-fighting
+            decal.applyMatrix4(projectionMatrix);
+
+
+            const texInfo = texInfos[overlay.texInfo];
+            const texData = texDatas[texInfo.texData];
+
+            if(!matOverlays[texData.nameStringTableID]) {
+                matOverlays[texData.nameStringTableID] = [];
+            }
+            matOverlays[texData.nameStringTableID].push(decal);
+
+        }
+
+        return matOverlays;
     }
     
 }

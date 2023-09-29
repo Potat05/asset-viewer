@@ -371,6 +371,27 @@ export class BSPReader extends BlobReader {
         });
     }
 
+    public async getOverlays() {
+        await this.loadLump(Lump.OVERLAYS);
+        return this.readArrayUntilEnd(() => {
+            const id = this.readNumber('Uint32');
+            const texInfo = this.readNumber('Uint16');
+            const faceCountAndRenderOrder = this.readNumber('Uint16');
+            return {
+                id,
+                texInfo,
+                faceCount: faceCountAndRenderOrder & 0x3FFF,
+                renderOrder: (faceCountAndRenderOrder & 0xC000) >> 14,
+                faces: this.readArray(this.readNumber, 64, 'Uint32'),
+                u: [ this.readNumber('Float32'), this.readNumber('Float32') ],
+                v: [ this.readNumber('Float32'), this.readNumber('Float32') ],
+                uvPoints: [ this.readVector(), this.readVector(), this.readVector(), this.readVector() ],
+                origin: this.readVector(),
+                basisNormal: this.readVector()
+            }
+        });
+    }
+
 }
 
 
