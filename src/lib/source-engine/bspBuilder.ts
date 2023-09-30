@@ -24,36 +24,46 @@ export class BSPBuilder {
         this.reader = reader;
         this.dir = dir;
     }
-    
+
+    vertices?: Awaited<ReturnType<BSPReader['getVertices']>>;
+    edges?: Awaited<ReturnType<BSPReader['getEdges']>>;
+    surfedges?: Awaited<ReturnType<BSPReader['getSurfEdges']>>;
+    faces?: Awaited<ReturnType<BSPReader['getFaces']>>;
+    texInfos?: Awaited<ReturnType<BSPReader['getTexInfos']>>;
+    texDatas?: Awaited<ReturnType<BSPReader['getTexDatas']>>;
+    dispInfos?: Awaited<ReturnType<BSPReader['getDispInfos']>>;
+    dispVerts?: Awaited<ReturnType<BSPReader['getDispVerts']>>;
+    texStrings?: Awaited<ReturnType<BSPReader['getTexDataStrings']>>;
+    overlays?: Awaited<ReturnType<BSPReader['getOverlays']>>;
+
 
 
     public async getFaces(options: BSPBuilderGetFacesOptions = {}): Promise<THREE.BufferGeometry[][]> {
-        // TODO: Choosing not to generate displacements in options still loads the displacement related lumps. 
-        const vertices = await this.reader.getVertices();
-        const edges = await this.reader.getEdges();
-        const surfedges = await this.reader.getSurfEdges();
-        const faces = await this.reader.getFaces();
-        const texInfos = await this.reader.getTexInfos();
-        const texDatas = await this.reader.getTexDatas();
-        const dispInfos = await this.reader.getDispInfos();
-        const dispVerts = await this.reader.getDispVerts();
+        if(!this.vertices) this.vertices = await this.reader.getVertices();
+        if(!this.edges) this.edges = await this.reader.getEdges();
+        if(!this.surfedges) this.surfedges = await this.reader.getSurfEdges();
+        if(!this.faces) this.faces = await this.reader.getFaces();
+        if(!this.texInfos) this.texInfos = await this.reader.getTexInfos();
+        if(!this.texDatas) this.texDatas = await this.reader.getTexDatas();
+        if(!this.dispInfos) this.dispInfos = await this.reader.getDispInfos();
+        if(!this.dispVerts) this.dispVerts = await this.reader.getDispVerts();
 
         let matFaces: THREE.BufferGeometry[][] = [];
 
-        for(const face of faces) {
+        for(const face of this.faces) {
 
             // Get face reflectivity
-            const texInfo = texInfos[face.texInfo];
-            const texData = texDatas[texInfo.texData];
+            const texInfo = this.texInfos[face.texInfo];
+            const texData = this.texDatas[texInfo.texData];
             const reflectivity = texData.reflectivity;
 
             // Get face vertices
             let verts = [];
 
             for(let i = 0; i < face.numEdges; i++) {
-                const surfedge = surfedges[face.firstEdge + i];
-                const edge = edges[Math.abs(surfedge)];
-                const vertex = vertices[edge[surfedge < 0 ? 1 : 0]];
+                const surfedge = this.surfedges[face.firstEdge + i];
+                const edge = this.edges[Math.abs(surfedge)];
+                const vertex = this.vertices[edge[surfedge < 0 ? 1 : 0]];
 
                 verts.push(vertex);
             }
@@ -75,7 +85,7 @@ export class BSPBuilder {
                     throw new Error('BSP Invalid displacement.');
                 }
 
-                const dispInfo = dispInfos[face.dispInfo];
+                const dispInfo = this.dispInfos[face.dispInfo];
                 const size = Math.pow(2, dispInfo.power);
 
                 // Generate vertices
@@ -98,7 +108,7 @@ export class BSPBuilder {
                         const v = j / size;
 
                         const dispVertIndex = i * (size + 1) + j;
-                        const dispVert = dispVerts[dispInfo.dispVertStart + dispVertIndex];
+                        const dispVert = this.dispVerts[dispInfo.dispVertStart + dispVertIndex];
 
                         const vertex = new THREE.Vector3().lerpVectors(
                             new THREE.Vector3().lerpVectors(v0, v1, u),
@@ -168,9 +178,9 @@ export class BSPBuilder {
     }
 
     public async getMaterials(): Promise<(THREE.ShaderMaterial | null)[]> {
-        const texStrings = await this.reader.getTexDataStrings();
+        if(!this.texStrings) this.texStrings = await this.reader.getTexDataStrings();
 
-        const materials = await Promise.all(texStrings.map(async materialPath => {
+        const materials = await Promise.all(this.texStrings.map(async materialPath => {
             materialPath = `materials/${materialPath.toLowerCase()}`;
             if(!materialPath.endsWith('.vmt')) materialPath += '.vmt';
             
@@ -197,13 +207,13 @@ export class BSPBuilder {
     }
 
     public async getOverlays(): Promise<THREE.BufferGeometry[][]> {
-        const overlays = await this.reader.getOverlays();
-        const texInfos = await this.reader.getTexInfos();
-        const texDatas = await this.reader.getTexDatas();
+        if(!this.overlays) this.overlays = await this.reader.getOverlays();
+        if(!this.texInfos) this.texInfos = await this.reader.getTexInfos();
+        if(!this.texDatas) this.texDatas = await this.reader.getTexDatas();
 
         let matOverlays: THREE.BufferGeometry[][] = [];
 
-        for(const overlay of overlays) {
+        for(const overlay of this.overlays) {
 
             const size = new THREE.Vector3(100, 100, 100); // TODO - Get size of overlay
 
@@ -218,8 +228,8 @@ export class BSPBuilder {
             decal.applyMatrix4(projectionMatrix);
 
 
-            const texInfo = texInfos[overlay.texInfo];
-            const texData = texDatas[texInfo.texData];
+            const texInfo = this.texInfos[overlay.texInfo];
+            const texData = this.texDatas[texInfo.texData];
 
             if(!matOverlays[texData.nameStringTableID]) {
                 matOverlays[texData.nameStringTableID] = [];
