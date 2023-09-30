@@ -13,6 +13,7 @@ enum Zip_PkSection {
     CentralDirEntry = 513,
     LocalFile = 1027,
     EndOfCentralDir = 1541,
+    EndOfCentralDir64 = 1542,
     DataDescriptor = 2055
 }
 
@@ -38,6 +39,13 @@ enum Compression {
     wavpack = 97,
     ppmd = 98,
     aex_encryption_marker = 99,
+}
+
+const ZIP_END_IDENT = 0x4B50 | (Zip_PkSection.EndOfCentralDir << 16);
+const ZIP64_END_IDENT = 0x4B50 | (Zip_PkSection.EndOfCentralDir64 << 16);
+
+enum Zip_Extra {
+    Zip64ExtendedInformation = 0x0001
 }
 
 
@@ -183,7 +191,7 @@ class ZipFile implements fsFile {
 
 
 
-async function locateEndOfCentralDir(file: Blob): Promise<number> {
+async function locateEndOfCentralDir(file: Blob, scanFor: number): Promise<number> {
 
     // Zip file may have comment with max length of 0xFFFF
 
@@ -194,8 +202,6 @@ async function locateEndOfCentralDir(file: Blob): Promise<number> {
         { start: Math.max(0, file.size - START_SIZE), end: file.size },
         { start: Math.max(0, file.size - MAX_SIZE), end: file.size },
     ];
-
-    const scanFor = 0x4B50 | (Zip_PkSection.EndOfCentralDir << 16);
 
     for(const scan of scans) {
 
@@ -231,142 +237,219 @@ export async function readZip(blob: Blob, name: string, parent: fsDirectory | nu
 
 
 
-    const endOfCentralDirPointer = await locateEndOfCentralDir(blob)
 
-    if(endOfCentralDirPointer == -1) {
+    if(blob.size <= 0xFFFFFFFF) {
+        // File is ZIP
 
-        // Zip has no central directory.
-        // We have to skip through the file reading each entry manually.
-        // which is EXTREMELY slow in js with blobs.
-
-        console.warn('Reading ZIP file without central directory.');
+        const endOfCentralDirPointer = await locateEndOfCentralDir(blob, ZIP_END_IDENT);
     
-        while(!reader.blobEof) {
-            
-            await reader.load(4);
-            
-            if(!reader.magic('PK')) {
-                console.warn(`Invalid ZIP section type header. at ${reader.blobPointer - 2}`);
-                return dir;
-            }
-            const sectionType = reader.readNumber('Uint16');
-            
-            switch(sectionType) {
+        if(endOfCentralDirPointer == -1) {
     
-                case Zip_PkSection.CentralDirEntry: {
+            // Zip has no central directory.
+            // We have to skip through the file reading each entry manually.
+            // which is EXTREMELY slow in js with blobs.
     
-                    await reader.load(42);
-    
-                    const versionMadeBy = reader.readNumber('Uint16');
-                    const versionNeededToExtract = reader.readNumber('Uint16');
-                    const flags = reader.readNumber('Uint16');
-                    const compressionMethod = reader.readNumber('Uint16');
-                    const fileModTime = reader.readNumber('Uint32');
-                    const crc32 = reader.readNumber('Uint32');
-                    const sizeCompressed = reader.readNumber('Uint32');
-                    const sizeUncompressed = reader.readNumber('Uint32');
-                    const filenameLength = reader.readNumber('Uint16');
-                    const extraLength = reader.readNumber('Uint16');
-                    const commentLength = reader.readNumber('Uint16');
-                    const diskNumberStart = reader.readNumber('Uint16');
-                    const intFileAttr = reader.readNumber('Uint16');
-                    const extFileAttr = reader.readNumber('Uint32');
-                    const offsetToLocalFileHeader = reader.readNumber('Uint32');
-    
-                    await reader.load(filenameLength + extraLength + commentLength);
-    
-                    const filepath = transformPath(reader.readString(filenameLength, 'utf-8'));
-                    const extra = reader.readBuffer(extraLength);
-                    const comment = reader.readString(commentLength, 'utf-8');
-    
-                    break; }
-    
-                case Zip_PkSection.LocalFile: {
-    
-                    await reader.load(26);
-    
-                    const version = reader.readNumber('Uint16');
-                    const flags = reader.readNumber('Uint16');
-                    const compressionMethod = reader.readNumber('Uint16');
-                    const fileModTime = reader.readNumber('Uint32');
-                    const crc32 = reader.readNumber('Uint32');
-                    const sizeCompressed = reader.readNumber('Uint32');
-                    const sizeUncompressed = reader.readNumber('Uint32');
-                    const filenameLength = reader.readNumber('Uint16');
-                    const extraLength = reader.readNumber('Uint16');
-    
-                    await reader.load(filenameLength + extraLength);
-    
-                    const filepath = transformPath(reader.readString(filenameLength, 'utf-8'));
-                    const extra = reader.readBuffer(extraLength);
-    
-                    const offsetData = reader.blobPointer;
-    
-                    const filename = filepath.split('/').pop();
-    
-                    if(filename == null) {
-                        throw new Error('Failed to read filename in zip file.');
-                    }
-    
-                    if(sizeCompressed > 0) {
-                        const file = new ZipFile(blob, {
-                            type: 'fileheader',
-                            compressionMethod: compressionMethod,
-                            offset: reader.blobPointer,
-                            compressedSize: sizeCompressed,
-                            uncompressedSize: sizeUncompressed
-                        }, filename);
-                        await fsUtils.setDeep(dir, filepath, file);
-                    }
-    
-                    reader.blobPointer += sizeCompressed;
-    
-                    break; }
-    
-                case Zip_PkSection.DataDescriptor: {
-    
-                    reader.blobPointer += 12;
-    
-                    break; }
-    
-                case Zip_PkSection.EndOfCentralDir: {
-    
-                    return dir;
-    
-                    break; }
-    
-                default: {
-
-                    console.warn(`Invalid ZIP section type. ${sectionType} at ${reader.blobPointer - 2}`);
-                    return dir;
-
-                    break; }
+            console.warn('Reading ZIP file without central directory.');
+        
+            while(!reader.blobEof) {
                 
+                await reader.load(4);
+                
+                if(!reader.magic('PK')) {
+                    console.warn(`Invalid ZIP section type header. at ${reader.blobPointer - 2}`);
+                    return dir;
+                }
+                const sectionType = reader.readNumber('Uint16');
+                
+                switch(sectionType) {
+        
+                    case Zip_PkSection.CentralDirEntry: {
+        
+                        await reader.load(42);
+        
+                        const versionMadeBy = reader.readNumber('Uint16');
+                        const versionNeededToExtract = reader.readNumber('Uint16');
+                        const flags = reader.readNumber('Uint16');
+                        const compressionMethod = reader.readNumber('Uint16');
+                        const fileModTime = reader.readNumber('Uint32');
+                        const crc32 = reader.readNumber('Uint32');
+                        const sizeCompressed = reader.readNumber('Uint32');
+                        const sizeUncompressed = reader.readNumber('Uint32');
+                        const filenameLength = reader.readNumber('Uint16');
+                        const extraLength = reader.readNumber('Uint16');
+                        const commentLength = reader.readNumber('Uint16');
+                        const diskNumberStart = reader.readNumber('Uint16');
+                        const intFileAttr = reader.readNumber('Uint16');
+                        const extFileAttr = reader.readNumber('Uint32');
+                        const offsetToLocalFileHeader = reader.readNumber('Uint32');
+        
+                        await reader.load(filenameLength + extraLength + commentLength);
+        
+                        const filepath = transformPath(reader.readString(filenameLength, 'utf-8'));
+                        const extra = reader.readBuffer(extraLength);
+                        const comment = reader.readString(commentLength, 'utf-8');
+        
+                        break; }
+        
+                    case Zip_PkSection.LocalFile: {
+        
+                        await reader.load(26);
+        
+                        const version = reader.readNumber('Uint16');
+                        const flags = reader.readNumber('Uint16');
+                        const compressionMethod = reader.readNumber('Uint16');
+                        const fileModTime = reader.readNumber('Uint32');
+                        const crc32 = reader.readNumber('Uint32');
+                        const sizeCompressed = reader.readNumber('Uint32');
+                        const sizeUncompressed = reader.readNumber('Uint32');
+                        const filenameLength = reader.readNumber('Uint16');
+                        const extraLength = reader.readNumber('Uint16');
+        
+                        await reader.load(filenameLength + extraLength);
+        
+                        const filepath = transformPath(reader.readString(filenameLength, 'utf-8'));
+                        const extra = reader.readBuffer(extraLength);
+        
+                        const offsetData = reader.blobPointer;
+        
+                        const filename = filepath.split('/').pop();
+        
+                        if(filename == null) {
+                            throw new Error('Failed to read filename in zip file.');
+                        }
+        
+                        if(sizeCompressed > 0) {
+                            const file = new ZipFile(blob, {
+                                type: 'fileheader',
+                                compressionMethod: compressionMethod,
+                                offset: reader.blobPointer,
+                                compressedSize: sizeCompressed,
+                                uncompressedSize: sizeUncompressed
+                            }, filename);
+                            await fsUtils.setDeep(dir, filepath, file);
+                        }
+        
+                        reader.blobPointer += sizeCompressed;
+        
+                        break; }
+        
+                    case Zip_PkSection.DataDescriptor: {
+        
+                        reader.blobPointer += 12;
+        
+                        break; }
+        
+                    case Zip_PkSection.EndOfCentralDir: {
+        
+                        return dir;
+        
+                        break; }
+        
+                    default: {
+    
+                        console.warn(`Invalid ZIP section type. ${sectionType} at ${reader.blobPointer - 2}`);
+                        return dir;
+    
+                        break; }
+                    
+                }
+        
+            }
+    
+        } else {
+    
+            // Zip has central directory.
+            // Reading is very fast without skipping through the whole file.
+    
+            // End of central directory
+            await reader.load(22, endOfCentralDirPointer);
+            reader.assertMagic('PK');
+            reader.assertMagic(Zip_PkSection.EndOfCentralDir, 'Uint16');
+            const disk = reader.readNumber('Uint16');
+            const diskWithStart = reader.readNumber('Uint16');
+            const numEntriesOnThisDisk = reader.readNumber('Uint16');
+            const numEntries = reader.readNumber('Uint16');
+            const centralDirectorySize = reader.readNumber('Uint32');
+            const centralDirectoryOffset = reader.readNumber('Uint32');
+            const commentLength = reader.readNumber('Uint16');
+            await reader.load(commentLength);
+            const comment = reader.readString(reader.dataLeft);
+    
+            // Central directory entries
+            await reader.load(centralDirectorySize, centralDirectoryOffset);
+    
+            while(!reader.eof) {
+    
+                reader.assertMagic('PK');
+                reader.assertMagic(Zip_PkSection.CentralDirEntry, 'Uint16');
+        
+                const versionMadeBy = reader.readNumber('Uint16');
+                const versionNeededToExtract = reader.readNumber('Uint16');
+                const flags = reader.readNumber('Uint16');
+                const compressionMethod = reader.readNumber('Uint16');
+                const fileModTime = reader.readNumber('Uint32');
+                const crc32 = reader.readNumber('Uint32');
+                const sizeCompressed = reader.readNumber('Uint32');
+                const sizeUncompressed = reader.readNumber('Uint32');
+                const filenameLength = reader.readNumber('Uint16');
+                const extraLength = reader.readNumber('Uint16');
+                const commentLength = reader.readNumber('Uint16');
+                const diskNumberStart = reader.readNumber('Uint16');
+                const intFileAttr = reader.readNumber('Uint16');
+                const extFileAttr = reader.readNumber('Uint32');
+                const offsetToLocalFileHeader = reader.readNumber('Uint32');
+    
+                const filepath = transformPath(reader.readString(filenameLength, 'utf-8'));
+                const extra = reader.readBuffer(extraLength);
+                const comment = reader.readString(commentLength, 'utf-8');
+    
+                const filename = filepath.split('/').pop();
+        
+                if(filename == null) {
+                    throw new Error('Failed to read filename in zip file.');
+                }
+    
+                if(sizeCompressed > 0) {
+                    const file = new ZipFile(blob, {
+                        type: 'centralfileheader',
+                        offsetToLocalHeader: offsetToLocalFileHeader
+                    }, filename);
+                    await fsUtils.setDeep(dir, filepath, file);
+                }
+    
             }
     
         }
 
     } else {
+        // File is ZIP64
 
-        // Zip has central directory.
-        // Reading is very fast without skipping through the whole file.
+        console.warn('ZIP64 files not yet supported.');
+
+        const endOfCentralDirPointer = await locateEndOfCentralDir(blob, ZIP64_END_IDENT);
+
+        if(endOfCentralDirPointer == -1) {
+            throw new Error('ZIP64 Must include end of central directory.');
+        }
 
         // End of central directory
-        await reader.load(22, endOfCentralDirPointer);
+        await reader.load(12, endOfCentralDirPointer);
         reader.assertMagic('PK');
-        reader.assertMagic(Zip_PkSection.EndOfCentralDir, 'Uint16');
-        const disk = reader.readNumber('Uint16');
-        const diskWithStart = reader.readNumber('Uint16');
-        const numEntriesOnThisDisk = reader.readNumber('Uint16');
-        const numEntries = reader.readNumber('Uint16');
-        const centralDirectorySize = reader.readNumber('Uint32');
-        const centralDirectoryOffset = reader.readNumber('Uint32');
-        const commentLength = reader.readNumber('Uint16');
-        await reader.load(commentLength);
+        reader.assertMagic(Zip_PkSection.EndOfCentralDir64, 'Uint16');
+        const sizeOfEndOfCentralDirectory = reader.readBigNumber('BigUint64');
+        await reader.load(Number(sizeOfEndOfCentralDirectory));
+        const versionMadeBy = reader.readNumber('Uint16');
+        const versionNeeded = reader.readNumber('Uint16');
+        const disk = reader.readNumber('Uint32');
+        const diskWithStart = reader.readNumber('Uint32');
+        const numEntriesOnThisDisk = reader.readBigNumber('BigUint64');
+        const numEntries = reader.readBigNumber('BigUint64');
+        const centralDirectorySize = reader.readBigNumber('BigUint64');
+        const centralDirectoryOffset = reader.readBigNumber('BigUint64');
         const comment = reader.readString(reader.dataLeft);
 
         // Central directory entries
-        await reader.load(centralDirectorySize, centralDirectoryOffset);
+        await reader.load(Number(centralDirectorySize), Number(centralDirectoryOffset));
 
         while(!reader.eof) {
 
@@ -393,6 +476,36 @@ export async function readZip(blob: Blob, name: string, parent: fsDirectory | nu
             const extra = reader.readBuffer(extraLength);
             const comment = reader.readString(commentLength, 'utf-8');
 
+
+
+            const extraReader = new DataReader(extra);
+            const extras = extraReader.readArrayUntilEnd(() => {
+                const id = extraReader.readNumber('Uint16');
+                const size = extraReader.readNumber('Uint16');
+                switch(id) {
+                    case Zip_Extra.Zip64ExtendedInformation:
+                        return {
+                            id,
+                            sizeUncompressed: extraReader.readBigNumber('BigUint64'),
+                            sizeCompressed: extraReader.readBigNumber('BigUint64'),
+                            offsetToLocalFileHeader: extraReader.readBigNumber('BigUint64'),
+                            // diskNumberStart: extraReader.readNumber('Uint32'),
+                            data: extraReader.readBuffer(size - 24)
+                        }
+                    default:
+                        return {
+                            id,
+                            data: extraReader.readBuffer(size)
+                        }
+                }
+            });
+
+
+
+            const zip64offsetToLocalFileHeader = Number(extras.find(e => e.id == Zip_Extra.Zip64ExtendedInformation)?.offsetToLocalFileHeader ?? offsetToLocalFileHeader);
+            
+
+
             const filename = filepath.split('/').pop();
     
             if(filename == null) {
@@ -402,7 +515,7 @@ export async function readZip(blob: Blob, name: string, parent: fsDirectory | nu
             if(sizeCompressed > 0) {
                 const file = new ZipFile(blob, {
                     type: 'centralfileheader',
-                    offsetToLocalHeader: offsetToLocalFileHeader
+                    offsetToLocalHeader: Number(zip64offsetToLocalFileHeader)
                 }, filename);
                 await fsUtils.setDeep(dir, filepath, file);
             }
