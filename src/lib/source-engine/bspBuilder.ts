@@ -248,11 +248,13 @@ export class BSPBuilder {
 
             // Project overlay.
             const size = new THREE.Vector3(100, -100, 100); // TODO - Get size of overlay
-            const decal = new ThreeUtils.DecalGeometry(projectGeoms, overlay.origin, overlay.basisNormal, size);
+            const decal = new ThreeUtils.DecalGeometry(projectGeoms, overlay.origin, overlay.normal, size);
 
             // Fix z-fighting.
             // TODO - Use a different way to fix z-fighting.
-            decal.translate(overlay.basisNormal.x, overlay.basisNormal.y, overlay.basisNormal.z);
+            // Probably use a separate render pass using "three/examples/jsm/postprocessing"
+            const zFix = overlay.normal.clone().multiplyScalar(overlay.renderOrder + 1);
+            decal.applyMatrix4(new THREE.Matrix4().makeTranslation(zFix));
 
 
 

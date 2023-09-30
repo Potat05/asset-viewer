@@ -387,7 +387,7 @@ export class BSPReader extends BlobReader {
                 v: [ this.readNumber('Float32'), this.readNumber('Float32') ],
                 uvPoints: [ this.readVector(), this.readVector(), this.readVector(), this.readVector() ],
                 origin: this.readVector(),
-                basisNormal: this.readVector()
+                normal: this.readVector()
             }
         });
     }
