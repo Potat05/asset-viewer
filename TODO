@@ -8,3 +8,4 @@ Improve VTF viewer
     VTF Slices
     VTF Mipmaps
     
+For some reason while transforming a viewer, it is called twice?
