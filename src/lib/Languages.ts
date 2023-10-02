@@ -45,3 +45,4 @@ addLang('python', /\.py$/, () => import("highlight.js/lib/languages/python"));
 addLang('bash', /\.sh$/, () => import("highlight.js/lib/languages/bash"));
 addLang('cpp', /\.(?:c|cpp|h|hpp|glsl|vsh|fsh)$/, () => import("highlight.js/lib/languages/cpp"));
 addLang('rust', /\.rs$/, () => import("highlight.js/lib/languages/rust"));
+addLang('css', /\.(?:css|scss)$/, () => import('highlight.js/lib/languages/css'));
