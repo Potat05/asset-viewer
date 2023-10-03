@@ -6,6 +6,7 @@ import pako from "pako";
 import * as lzma from "./codecs/lzma";
 import { DataReader } from "./DataReader";
 import { NumberUtils } from "./NumberUtils";
+import { CRC32 } from "./crc32";
 
 
 
@@ -75,6 +76,7 @@ class ZipFile implements fsFile {
 
     private zip: Blob;
     private options: ZipFileOptions;
+    private crc32: number | null = null;
 
     constructor(zip: Blob, options: ZipFileOptions, name: string, parent: fsDirectory | null = null) {
         this.zip = zip;
@@ -111,7 +113,7 @@ class ZipFile implements fsFile {
             const flags = reader.readNumber('Uint16');
             compressionMethod = reader.readNumber('Uint16');
             const fileModTime = reader.readNumber('Uint32');
-            const crc32 = reader.readNumber('Uint32');
+            this.crc32 = reader.readNumber('Uint32');
             compressedSize = reader.readNumber('Uint32');
             uncompressedSize = reader.readNumber('Uint32');
             const filenameLength = reader.readNumber('Uint16');
@@ -189,8 +191,16 @@ class ZipFile implements fsFile {
             throw new Error('Could not decompress zip file.');
         }
 
+        await this.checkCRC32();
+
         return this.loadedBlob;
 
+    }
+
+    private async checkCRC32(): Promise<void> {
+        if(this.crc32 !== null) {
+            CRC32.assertDigest(this.crc32, await this.buffer());
+        }
     }
 
     public async buffer(): Promise<ArrayBuffer> {
