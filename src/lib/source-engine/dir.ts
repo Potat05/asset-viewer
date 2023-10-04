@@ -1,8 +1,14 @@
 
-import { fsEntry, type fsDirectory, type fsFile } from "$lib/FileSystem";
+import { fsEntry, type fsDirectory, type fsFile, fsUtils } from "$lib/FileSystem";
 import type { Viewer } from "$lib/Viewer";
+import { readVpk } from "./vpk";
 
 
+
+export async function mergedGetDeep(dir: fsDirectory): Promise<fsDirectory | fsFile | null> {
+    // Merged directory needs a whole different way to get deep.
+    throw new Error('unimplemented.');
+}
 
 export class MergedDirectory implements fsDirectory {
     public viewer: Viewer | null = null;
@@ -59,15 +65,26 @@ export async function getSourceEngineAssetsDir(base: fsDirectory, extra: fsDirec
     const assetPaths = [
         'tf',
         'tf/tf2_misc_dir.vpk',
-        'tf/tf2_sound_dir.vpk',
+        'tf/tf2_sounds_dir.vpk',
         'tf/tf2_textures_dir.vpk',
     ];
 
     for(const assetPath of assetPaths) {
-        const entry = await base.get(assetPath);
-        // TODO: VPK support.
-        if(entry == null || entry.type != fsEntry.Directory) continue;
-        dirs.push(entry);
+        const entry = await fsUtils.getDeep(base, assetPath);
+        if(!entry) continue;
+
+        if(entry.type == fsEntry.File) {
+            if(!entry.name.endsWith('.vpk')) continue;
+            // Entry is VPK.
+
+            const read = await readVpk(entry, true);
+            dirs.push(read.vpk);
+
+        } else {
+
+            dirs.push(entry);
+
+        }
     }
 
     return new MergedDirectory(dirs, base.name, null);
